@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OnPoint · Brand Hunt &amp; Tier Analyzer</title>
+<style>
+/* ===========================================================================
+   OnPoint brand identity — clean modern enterprise
+   Ty le mau: ~70% trang/xam nhat · ~20% blue+charcoal (nav, chart, phan tich)
+              ~10% red (branding, selected, priority, primary action)
+   Red KHONG dung lam nen chinh, KHONG dung mot minh de bao "xau"
+   (so am luon co dau tru + mui ▼ + mau status rieng).
+   =========================================================================== */
+:root{
+ /* --- core palette --- */
+ --red:#C51B1E;        --red-d:#991B1E;      --red-l:#FBEAEA;
+ --blue:#1F5AA6;       --blue-d:#163B66;     --blue-l:#EAF2FB;   --blue-m:#4B7FBF; --blue-s:#7FA8D4;
+ --ink:#383835;        --ink-2:#667085;
+ --bg:#F5F7FA;         --card:#FFFFFF;       --line:#D9DEE5;     --line-2:#E8ECF1;
+ --tint:#F9FAFB;
+ /* --- status --- */
+ --pos:#16855B;  --pos-l:#E7F4EE;
+ --neg:#B42318;  --neg-l:#FCEAE8;
+ --warn:#D97706; --warn-l:#FDF4E7;
+ --info:#1F5AA6; --info-l:#EAF2FB;
+ --neu:#667085;  --neu-l:#F2F4F7;
+ /* --- shadow --- */
+ --sh:0 1px 2px rgba(16,24,40,.06);
+ --sh-2:0 1px 3px rgba(16,24,40,.10),0 1px 2px rgba(16,24,40,.06);
+ /* alias giu tuong thich voi code cu */
+ --navy:#163B66; --navy-d:#0F2A4A; --acc:#EAF2FB; --acc2:#EAF2FB; --muted:#667085;
+ --t1:#B42318; --t1b:#FCEAE8; --t2:#D97706; --t2b:#FDF4E7; --t3:#16855B; --t3b:#E7F4EE;
+ --yel:#FDF4E7; --yel2:#EAF2FB;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Aptos','Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;
+ -webkit-font-smoothing:antialiased;}
+
+/* ---------- header: nen TRANG, logo OnPoint, chu charcoal, vach do brand ---------- */
+.top{background:var(--card);border-bottom:1px solid var(--line);box-shadow:var(--sh);
+ padding:0 28px;display:flex;align-items:center;justify-content:space-between;
+ position:relative;height:64px;}
+.top:after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--red);}
+.top .brand{display:flex;align-items:center;gap:0;}
+.top .mark{display:flex;align-items:center;gap:1px;margin-right:16px;}
+.top .mark .wm{font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.4px;line-height:1;}
+.top .divider{width:1px;height:26px;background:var(--line);margin-right:16px;}
+.top .prod{font-size:17px;font-weight:700;color:var(--ink);}
+.top .sub{font-size:12.5px;color:var(--ink-2);}
+
+.wrap{max-width:1180px;margin:0 auto;padding:24px 24px 64px;}
+
+/* ---------- stepper: nav -> dark blue khi active, primary blue khi da xong ---------- */
+.stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+.stepper .st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 20px;
+ display:flex;align-items:center;gap:14px;box-shadow:var(--sh);transition:.15s;}
+.stepper .st .n{width:29px;height:29px;border-radius:50%;background:var(--neu-l);color:var(--ink-2);
+ display:grid;place-items:center;font-weight:700;font-size:13.5px;flex:0 0 auto;}
+.stepper .st .lbl{font-weight:700;font-size:15px;color:var(--ink);}
+.stepper .st .d{font-size:12px;color:var(--ink-2);}
+.stepper .st.active{background:var(--blue-d);border-color:var(--blue-d);}
+.stepper .st.active .lbl{color:#fff;}
+.stepper .st.active .d{color:#C7D6E8;}
+.stepper .st.active .n{background:var(--red);color:#fff;}          /* selected -> red */
+.stepper .st.done .n{background:var(--blue);color:#fff;}
+.stepper .st.done .lbl{color:var(--blue-d);}
+
+.page{display:none;}.page.show{display:block;animation:fade .18s;}
+@keyframes fade{from{opacity:0;transform:translateY(3px);}to{opacity:1;}}
+
+/* ---------- card / form ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px 26px;
+ margin-bottom:18px;box-shadow:var(--sh);}
+.card h3{font-size:17px;color:var(--ink);margin-bottom:16px;font-weight:700;}
+
+/* --- card KET LUAN: 2 khoi quan trong nhat (Re-pitch + Suggestion & Next Action) ---
+   Nen van TRANG de khong tang ty le mau; noi bat bang vien do + shadow + badge. */
+.card.key{border-left:4px solid var(--red);box-shadow:0 4px 12px rgba(16,24,40,.10),0 1px 3px rgba(16,24,40,.08);
+ padding:26px 28px;margin-bottom:22px;}
+.card.key>.keyhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+.card.key>.keyhead .kb{background:var(--red);color:#fff;font-size:11px;font-weight:800;letter-spacing:1px;
+ padding:5px 11px;border-radius:5px;text-transform:uppercase;flex:0 0 auto;}
+.card.key>.keyhead .kt{font-size:22px;font-weight:800;color:var(--ink);line-height:1.25;}
+.card.key>.keysub{font-size:13px;color:var(--ink-2);margin-bottom:20px;}
+.card.key .metric{background:var(--card);border:1px solid var(--line);}
+.card.key .metric .v{font-size:19px;}
+/* o so lieu quan trong nhat trong card ket luan */
+.card.key .metric.hero{border-color:var(--red);background:var(--red-l);}
+.card.key .metric.hero .v{font-size:24px;font-weight:800;}
+/* bang ket luan: nhan ben trai to hon, de doc tu xa */
+.card.key .cmp td:first-child{font-weight:700;color:var(--ink);width:24%;}
+.card.key .cmp td{padding:12px 14px;font-size:13.5px;}
+.hint{font-size:12.5px;color:var(--ink-2);margin-bottom:16px;}
+.f label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.f .req{color:var(--red);}
+.f input,.f select{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:8px;
+ font-size:14px;font-family:inherit;background:var(--card);color:var(--ink);}
+.f input::placeholder{color:#98A2B3;}
+.f input:focus,.f select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l);}
+.optional{font-size:10.5px;color:var(--ink-2);background:var(--neu-l);padding:2px 8px;border-radius:5px;
+ margin-left:8px;font-weight:600;vertical-align:2px;}
+/* "1 of 2": Brand Name va Group Brand — dien 1 trong 2 la du */
+.either{font-size:10.5px;color:var(--blue);background:var(--blue-l);border:1px solid #D3E3F6;
+ padding:1px 8px;border-radius:5px;margin-left:6px;font-weight:700;vertical-align:2px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;}
+.btnrow{display:flex;justify-content:space-between;gap:12px;margin-top:22px;align-items:center;}
+/* primary action -> red (10%) */
+.btn{padding:12px 24px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;
+ border:1px solid var(--red);background:var(--red);color:#fff;font-family:inherit;transition:.15s;}
+.btn:hover{background:var(--red-d);border-color:var(--red-d);}
+.btn.ghost{background:var(--card);color:var(--ink);border-color:var(--line);}
+.btn.ghost:hover{background:var(--tint);border-color:var(--ink-2);}
+.btn:disabled{background:var(--neu-l);border-color:var(--line);color:#98A2B3;cursor:not-allowed;}
+.btn.sm{padding:8px 15px;font-size:12.5px;border-radius:7px;}
+
+/* ---------- banner brand ---------- */
+.banner{display:flex;align-items:center;gap:18px;padding:18px 22px;border-radius:12px;margin-bottom:20px;
+ background:var(--blue-l);border:1px solid #D3E3F6;}
+.banner .ic{width:50px;height:50px;border-radius:10px;display:grid;place-items:center;
+ font-size:24px;font-weight:800;flex:0 0 auto;}
+.banner.new .ic{background:var(--blue-d);color:#fff;}
+.banner.old .ic{background:var(--blue);color:#fff;font-size:21px;}
+.banner .tt{font-size:20px;font-weight:700;color:var(--ink);}
+.banner .tt .dot{color:#A9B4C2;font-weight:400;margin:0 8px;}
+.banner .ss{font-size:13px;color:var(--ink-2);margin-top:2px;}
+/* badge Hunt Priority: P1 -> red (priority), P2 -> blue, P3 -> neutral */
+.banner .tierbadge{margin-left:auto;font-weight:800;font-size:14px;padding:9px 18px;border-radius:8px;
+ white-space:nowrap;background:var(--neu);color:#fff;}
+.banner .tierbadge.p1{background:var(--red);}
+.banner .tierbadge.p2{background:var(--blue);}
+
+/* ---------- dropzone ---------- */
+.drop{border:1.5px dashed #B9C4D2;border-radius:10px;padding:34px 26px;text-align:center;
+ background:var(--tint);cursor:pointer;transition:.15s;}
+.drop:hover,.drop.over{border-color:var(--blue);background:var(--blue-l);}
+.drop .big{font-size:18px;font-weight:700;color:var(--ink);}
+.drop .sm{font-size:13.5px;color:var(--ink-2);margin-top:7px;}
+
+/* ---------- file da doc ---------- */
+.fileok{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid #BFE0CE;
+ background:var(--pos-l);border-radius:9px;margin-top:16px;font-size:13.5px;font-weight:700;color:var(--ink);}
+.fileok .r{margin-left:auto;color:var(--pos);font-weight:700;font-size:13px;}
+.chk{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;
+ color:#fff;font-weight:800;background:var(--neu);flex:0 0 auto;}
+.chk.ok{background:var(--pos);}.chk.miss{background:var(--neg);}
+
+/* ---------- gate: luoi card nhom ---------- */
+.gatehead{display:flex;align-items:flex-end;justify-content:space-between;margin:22px 0 4px;}
+.gatehead .t{font-size:16px;font-weight:700;color:var(--ink);}
+.gatehead .c{font-size:13px;font-weight:600;color:var(--ink-2);}
+.gatehead .c b{color:var(--neg);}
+.gatesub{font-size:12.5px;color:var(--ink-2);margin-bottom:16px;}
+.gategrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+.gcard{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card);box-shadow:var(--sh);}
+.gcard>.gh{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--tint);
+ border-bottom:1px solid var(--line-2);}
+.gcard>.gh .gt{font-weight:700;font-size:14.5px;color:var(--ink);}
+.gcard>.gh .cnt{margin-left:auto;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.cnt.full{background:var(--pos-l);color:var(--pos);}.cnt.part{background:var(--neg-l);color:var(--neg);}
+.grow{display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid var(--line-2);font-size:13.5px;}
+.grow:last-child{border-bottom:none;}
+.grow .st{margin-left:auto;font-weight:600;font-size:12.5px;white-space:nowrap;}
+.grow .st.ok{color:var(--pos);}.grow .st.miss{color:var(--neg);}
+.gcard.solo>.gh{border-bottom:none;}
+
+/* ---------- pill panel: selected = blue (analytical). STATUS = red (priority) ---------- */
+.pgrid{display:grid;gap:14px;margin-bottom:14px;}
+.pgrid.c2{grid-template-columns:1fr 1fr;}
+.ppanel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 16px 16px;box-shadow:var(--sh);}
+.ppanel .plab{font-size:11px;font-weight:700;letter-spacing:.8px;color:var(--ink-2);text-transform:uppercase;margin-bottom:10px;}
+.pills{display:flex;flex-wrap:wrap;gap:8px;}
+.pill{padding:8px 16px;border-radius:20px;background:var(--neu-l);color:var(--ink-2);
+ font-size:12.5px;font-weight:600;text-align:center;line-height:1.25;border:1px solid transparent;}
+.pill.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700;}
+.pill.on.key{background:var(--red);border-color:var(--red);}   /* STATUS / priority */
+.pnote{font-size:11.5px;color:var(--warn);background:var(--warn-l);border:1px solid #F2DDBB;
+ padding:7px 11px;border-radius:7px;margin-top:11px;}
+.pnote.nodata{color:var(--ink-2);background:var(--neu-l);border-color:var(--line);}
+
+/* ---------- metric / field cards ---------- */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:14px;}
+.metric{background:var(--tint);border:1px solid var(--line-2);border-radius:9px;padding:13px 16px;}
+.metric .k{font-size:11.5px;color:var(--ink-2);font-weight:600;}
+.metric .v{font-size:16px;font-weight:700;color:var(--ink);margin-top:3px;word-break:break-word;}
+.metric .s{font-size:11px;color:var(--ink-2);}
+.linkrow{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:13px;margin-bottom:16px;}
+.linkbox{background:var(--tint);border:1px solid var(--line-2);border-radius:9px;padding:13px 16px;}
+.linkbox .k{font-size:11.5px;color:var(--ink-2);font-weight:600;margin-bottom:6px;}
+.linkbox a{color:var(--blue);font-weight:600;font-size:13.5px;text-decoration:none;}
+.linkbox a:hover{text-decoration:underline;}
+.linkbox .chipa{display:inline-block;background:var(--blue-l);color:var(--blue);border:1px solid #D3E3F6;
+ border-radius:6px;padding:5px 12px;font-weight:600;font-size:12.5px;margin:0 6px 4px 0;text-decoration:none;}
+.linkbox .na{color:#98A2B3;font-size:13px;font-weight:500;}
+
+/* ---------- section header ---------- */
+.shead{display:flex;align-items:flex-start;gap:14px;border-bottom:1px solid var(--line);
+ padding-bottom:14px;margin-bottom:20px;}
+.shead .barv{width:4px;border-radius:2px;background:var(--red);align-self:stretch;min-height:42px;flex:0 0 auto;}
+.shead .t{font-size:21px;font-weight:700;color:var(--ink);line-height:1.25;}
+.shead .t em{color:var(--red);font-style:normal;}
+.shead .s{font-size:13px;color:var(--ink-2);margin-top:3px;}
+.shead .rt{margin-left:auto;text-align:right;flex:0 0 auto;}
+.shead .rt .b{font-size:18px;font-weight:700;color:var(--ink);}
+.shead .rt .sub{font-size:10.5px;letter-spacing:1px;color:var(--ink-2);font-weight:600;text-transform:uppercase;}
+.tag{display:inline-block;background:var(--blue-d);color:#fff;font-size:12.5px;font-weight:700;
+ padding:8px 16px;border-radius:7px;margin-bottom:18px;letter-spacing:.3px;}
+
+.mr{margin-bottom:26px;}
+.mr .h{display:flex;align-items:center;gap:11px;font-weight:700;color:var(--ink);font-size:16px;margin-bottom:10px;}
+.mr .h .num{background:var(--blue-d);color:#fff;width:24px;height:24px;border-radius:6px;
+ display:grid;place-items:center;font-size:12.5px;flex:0 0 auto;}
+.mr .h .viz{font-size:12px;color:var(--ink-2);font-weight:500;}
+.mr .desc{font-size:12px;color:var(--ink-2);margin:0 0 12px 35px;}
+.mr .body{margin-left:35px;}
+
+/* ---------- donut ---------- */
+.donuts{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+.dwrap{text-align:center;}
+.dwrap .dttl{display:inline-block;background:var(--blue-d);color:#fff;font-size:12.5px;font-weight:700;
+ padding:6px 18px;border-radius:7px;margin-bottom:12px;}
+.dbody{display:flex;align-items:center;justify-content:center;gap:20px;}
+.dleg{text-align:left;font-size:13px;}
+.dleg .r{display:flex;align-items:center;gap:9px;margin:7px 0;}
+.dleg .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto;}
+.dleg .nm{min-width:104px;color:var(--ink);}
+.dleg .pc{font-weight:700;margin-left:auto;color:var(--ink);}
+
+/* ---------- bang ---------- */
+.cmp{width:100%;border-collapse:collapse;font-size:13px;}
+.cmp th,.cmp td{padding:10px 12px;border-bottom:1px solid var(--line-2);text-align:right;color:var(--ink);}
+.cmp th{color:#fff;font-weight:700;font-size:12.5px;background:var(--blue-d);}
+.cmp th:first-child,.cmp td:first-child{text-align:left;}
+.cmp tbody tr:nth-child(even){background:var(--tint);}
+.cmp td.you{background:var(--blue-l);font-weight:700;color:var(--ink);}
+.cmp th.you{background:var(--red);}                     /* cot cua brand = brand OnPoint -> red */
+.cmp tr.tot td{background:var(--neu-l);font-weight:700;color:var(--ink);}
+.cmp .lead{color:var(--pos);font-weight:700;}
+.cmp .fb{color:#98A2B3;font-weight:500;font-size:12px;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.tinyu{font-size:10.5px;color:var(--ink-2);font-weight:500;}
+.note{font-size:11.5px;color:var(--ink-2);margin-top:8px;}
+.warnbox{background:var(--warn-l);border:1px solid #F2DDBB;padding:11px 15px;border-radius:8px;
+ font-size:12.5px;color:#8A5008;margin:12px 0;}
+.warnbox ul{list-style:disc;margin-left:18px;}
+.warnbox b{color:var(--neg);}
+
+/* ---------- price segment side table ---------- */
+.pstbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.pstbl caption{background:var(--blue);color:#fff;font-weight:700;padding:10px;border-radius:8px 8px 0 0;font-size:13px;}
+.pstbl th{background:var(--blue-d);color:#fff;padding:9px 11px;font-size:12px;text-align:right;font-weight:700;}
+.pstbl th:first-child{text-align:left;}
+.pstbl td{padding:9px 11px;border-bottom:1px solid var(--line-2);text-align:right;color:var(--ink);}
+.pstbl td:first-child{text-align:left;font-weight:600;}
+.pstbl tr.hl td{background:var(--red-l);font-weight:700;}
+.up{color:var(--pos);font-weight:700;}.dn{color:var(--neg);font-weight:700;}.fl{color:var(--warn);font-weight:700;}
+
+/* ---------- Internal Brand Brief ---------- */
+.ibb{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--card);box-shadow:var(--sh);}
+.ibb .ih{background:var(--blue-d);color:#fff;font-size:18px;font-weight:800;letter-spacing:.5px;padding:15px 22px;}
+.ibb table{width:100%;border-collapse:collapse;}
+.ibb td{border-bottom:1px solid var(--line-2);vertical-align:middle;}
+.ibb td.k{width:34%;background:var(--tint);padding:13px 18px;font-weight:600;color:var(--ink);font-size:14px;}
+.ibb td.k .ico{display:inline-block;width:22px;margin-right:10px;text-align:center;}
+.ibb td.v{background:var(--blue-l);padding:0;}
+.ibb td.v .ed{min-height:46px;padding:13px 18px;font-size:13.5px;outline:none;color:var(--ink);}
+.ibb td.v .ed:focus{background:var(--card);box-shadow:inset 0 0 0 2px var(--blue);}
+.ibb td.v .ed:empty:before{content:attr(data-ph);color:#8FA6C4;font-style:italic;}
+.ibb tr:last-child td{border-bottom:none;}
+.ibbbar{display:flex;align-items:center;gap:10px;margin-top:12px;}
+
+@media(max-width:900px){
+ .stepper{grid-template-columns:1fr;}
+ .grid2,.two,.donuts,.gategrid,.pgrid.c2{grid-template-columns:1fr;}
+ .metrics{grid-template-columns:1fr 1fr;}
+ .linkrow{grid-template-columns:1fr;}
+ .mr .body,.mr .desc{margin-left:0;}
+ .banner .tierbadge{margin-left:0;}
+ .shead{flex-wrap:wrap;}.shead .rt{margin-left:0;text-align:left;}
+ .top{height:auto;padding:12px 18px;flex-wrap:wrap;gap:6px;}
+ .top .divider,.top .prod{display:none;}
+}
+</style></head>
+<body>
+<div class="top">
+ <div class="brand">
+  <span class="mark">
+   <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+    <circle cx="13" cy="13" r="10.2" fill="none" stroke="#C51B1E" stroke-width="4.6"></circle>
+    <circle cx="13" cy="13" r="3.5" fill="#C51B1E"></circle>
+   </svg><span class="wm">nPoint</span>
+  </span>
+  <span class="divider"></span>
+  <span class="prod">Brand Hunt &amp; Tier Analyzer</span>
+ </div>
+ <div class="sub">Health · Vietnam</div>
+</div>
+<div class="wrap">
+ <div class="stepper">
+  <div class="st active" id="s1"><span class="n">1</span><div><div class="lbl">Brand Name</div><div class="d">Check Brand History</div></div></div>
+  <div class="st" id="s2"><span class="n">2</span><div><div class="lbl">Brand Information</div><div class="d">Already Engaged / New</div></div></div>
+  <div class="st" id="s3"><span class="n">3</span><div><div class="lbl">Analysis &amp; Recommendation</div><div class="d">Market + Verdict + P&amp;L</div></div></div>
+ </div>
+
+ <div class="page show" id="p1">
+  <div class="card">
+   <h3>Step 1 · Brand Name</h3>
+   <div class="f" style="margin-bottom:12px;"><label>Brand Name <span class="req">*</span> <span class="either">1 of 2</span></label><input id="i_name" placeholder="VD: OPC" value="OPC"></div>
+   <div class="f" style="margin-bottom:8px;"><label>Group Brand <span class="req">*</span> <span class="either">1 of 2</span></label><input id="i_group" placeholder="VD: OPC Pharma"></div>
+   <div class="hint" style="margin-bottom:18px;">Điền ít nhất 1 trong 2 ô trên. Nếu chưa có tên brand cụ thể, chỉ cần điền Group Brand là tra cứu được.</div>
+   <div class="grid2">
+    <div class="f"><label>Category 1 <span class="req">*</span></label><select id="i_cat">
+     <option>Nutrition &amp; Wellness</option><option>Medical Supplies</option><option>Sexual Wellness</option></select></div>
+    <div class="f"><label>Category 2 <span class="optional">optional</span></label><select id="i_cat2"><option value="">— None —</option><option>Nutrition &amp; Wellness</option><option>Medical Supplies</option><option>Sexual Wellness</option></select></div>
+   </div>
+   <div class="btnrow"><span></span><button class="btn" onclick="lookup()">Check Brand →</button></div>
+  </div>
+ </div>
+
+ <div class="page" id="p2"></div>
+ <div class="page" id="p3"></div>
+</div>
+<!--LIBS-->
+<!--DATA-->
+<!--APP-->
+</body></html>

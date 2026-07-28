@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tailwind preflight bi tat trong tailwind.config.js (se pha layout cua
+   engine.css). Nen reset toi thieu o day cho phan vo app do React ve. */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}

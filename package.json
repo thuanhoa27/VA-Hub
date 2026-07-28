@@ -1,0 +1,31 @@
+{
+  "name": "brandhunt-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OnPoint · Brand Hunt & Tier Analyzer — Next.js + Supabase",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "port": "node scripts/port-engine.mjs",
+    "seed": "node scripts/generate-seed.mjs",
+    "verify": "python scripts/parse-seed.py && node scripts/verify-roundtrip.mjs",
+    "prebuild": "node scripts/port-engine.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "next": "14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "//vendor": "SheetJS va PptxGenJS KHONG lay tu npm — xem public/vendor/README.md",
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}
