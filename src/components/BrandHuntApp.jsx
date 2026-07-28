@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SHELL_BODY } from './shellBody';
 import { loadReferenceData, saveRun } from '@/lib/data';
 import { isConfigured } from '@/lib/supabase/client';
@@ -37,6 +37,8 @@ export default function BrandHuntApp() {
   const [runBy, setRunBy] = useState('');
   const [savedCount, setSavedCount] = useState(0);
   const [saveErr, setSaveErr] = useState('');
+
+  const shellHtml = useMemo(() => ({ __html: SHELL_BODY }), []);
 
   // ten VA duoc nho lai o may — app public nen khong co login de lay tu dau
   useEffect(() => {
@@ -162,7 +164,7 @@ export default function BrandHuntApp() {
       <div
         ref={hostRef}
         style={{ visibility: status === 'ready' ? 'visible' : 'hidden' }}
-        dangerouslySetInnerHTML={{ __html: SHELL_BODY }}
+        dangerouslySetInnerHTML={shellHtml}
       />
     </>
   );
