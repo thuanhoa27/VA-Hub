@@ -41,6 +41,7 @@ export default function AppHeader({ current = 'analyze' }) {
       <div className="flex items-center gap-2">
         <nav className="flex items-center gap-1">
           {tab('/', 'analyze', 'Analyze')}
+          {tab('/pipeline', 'pipeline', 'Pipeline')}
           {tab('/runs', 'runs', 'Run History')}
         </nav>
         <span className="ml-3 text-[12.5px] text-op-ink2">Health · Vietnam</span>

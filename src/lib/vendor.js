@@ -42,3 +42,29 @@ export const ensureXLSX = () => loadScript('/vendor/xlsx.full.min.js', 'XLSX');
 
 /** PptxGenJS + JSZip — bat buoc co truoc khi export deck. */
 export const ensurePptxGenJS = () => loadScript('/vendor/pptxgen.bundle.js', 'PptxGenJS');
+
+/* ------------------------------------------------------------------
+   Tab Pipeline (/pipeline) — 3 script duoi day chi nap khi mo tab do.
+   Trang phan tich BrandHunt khong tai gi them.
+   ------------------------------------------------------------------ */
+
+/**
+ * ECharts 5.5.0 — 2 chart cua tab Pipeline.
+ * Vendor thay vi CDN: khoa dung version module da test, va chay duoc ca khi
+ * mang cong ty chan cdnjs. Neu thieu, pipeline.js bo qua chart va van render
+ * phan con lai (KPI/bang/filter/export).
+ */
+export const ensureECharts = () => loadScript('/vendor/echarts.min.js', 'echarts');
+
+/**
+ * ExcelJS 4.4.0 — chi can cho nut "Export Excel" cua tab Pipeline.
+ * Day la thu vien KHAC voi SheetJS o tren; ca hai cung ton tai, khong xung dot
+ * global (XLSX vs ExcelJS). Neu thieu, nut export bi disable co kem title.
+ */
+export const ensureExcelJS = () => loadScript('/vendor/exceljs.min.js', 'ExcelJS');
+
+/**
+ * Module Pipeline Tracker (vanilla, khong phai ES module) — expose
+ * window.PipelineTracker. File sinh boi scripts/port-pipeline.mjs.
+ */
+export const ensurePipelineTracker = () => loadScript('/pipeline/pipeline.js', 'PipelineTracker');

@@ -1,0 +1,175 @@
+/*
+  pipeline.css
+  Every single selector below is literally prefixed with "#pipeline-root"
+  (per the contract's own example: "#pipeline-root .pl-card { ... }").
+  Every class carries the "pl-" prefix. There are no selectors on body,
+  html, *, or bare elements (h1{}, table{}, button{}, etc.) anywhere in
+  this file. No @import, no CSS reset/normalize, no external font.
+*/
+
+#pipeline-root,
+#pipeline-root * {
+  box-sizing: border-box;
+}
+
+/*
+  ---- Chan ro ri NGUOC (host -> module) ----
+  App dich import engine.css o layout.jsx, trong do co reset toan cuc
+  `* { margin:0; padding:0 }` va `body { font-size:14px; line-height:1.5 }`.
+  Module nay duoc build standalone nen khong co 2 thu do.
+
+  Kiem chung 2026-07-29: khong anh huong thuc te — moi font-size trong file nay
+  la px tuyet doi, va h1.pl-title da co margin tuong minh. Nhung neu sau nay ai
+  them element moi dua vao margin mac dinh cua browser thi se vo am tham.
+  Khoa lai o day cho chac, de module khong phu thuoc vao CSS cua host.
+*/
+#pipeline-root {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/*
+  ---- OnPoint restyle (2026-07-29) ----
+  Cac bien duoi day da duoc map sang dung token cua BrandHunt (src/app/engine.css
+  :root) de 2 tab trong lien mach. KHONG dung palette cua deck template — dung
+  dung palette app dang render, cu the la do #C51B1E chu khong phai #EA0600.
+  Doi mau: sua o day, roi chay `npm run port:pipeline`.
+
+  Layout, vi tri card, loai chart va so lieu giu nguyen y nhu ban demo.
+*/
+#pipeline-root {
+  /* --- OnPoint core palette (khop engine.css) --- */
+  --pl-red:#C51B1E;
+  --pl-red-d:#991B1E;
+  --pl-red-l:#FBEAEA;
+  --pl-blue:#1F5AA6;
+  --pl-navy:#163B66;          /* op blue-d — dung cho Verbal */
+  --pl-navy-d:#0F2A4A;
+  --pl-blue-l:#EAF2FB;
+  --pl-blue-accent:#1F5AA6;
+  --pl-ink:#383835;
+  --pl-sub:#667085;
+  --pl-border:#D9DEE5;
+  --pl-line-2:#E8ECF1;
+  --pl-bg:#F5F7FA;
+  --pl-card:#FFFFFF;
+  --pl-tint:#F9FAFB;
+
+  /* --- status colors (khop --pos/--warn/--neg cua engine.css) --- */
+  --pl-green-dark:#16855B;
+  --pl-green-d:#0F6B49;
+  --pl-green-status:#16855B;
+  --pl-green-l:#E7F4EE;
+  --pl-navy-status:#1F5AA6;
+  --pl-orange:#D97706;
+  --pl-orange-status:#D97706;
+  --pl-orange-l:#FDF4E7;
+  --pl-amber-status:#D97706;
+  --pl-gray-accent:#667085;
+  --pl-neg:#B42318;
+  --pl-neg-l:#FCEAE8;
+  --pl-yellow:#FDF4E7;        /* het mau vang neon — dung amber-light cua OnPoint */
+  --pl-yellow-soft:#FDF4E7;
+
+  /* --- shape tokens (khop var(--sh)/--sh-2 va radius 10px/8px cua engine.css) --- */
+  --pl-radius:10px;
+  --pl-radius-sm:8px;
+  --pl-sh:0 1px 2px rgba(16,24,40,.06);
+  --pl-sh-2:0 1px 3px rgba(16,24,40,.10),0 1px 2px rgba(16,24,40,.06);
+
+  font-family: 'Aptos', 'Segoe UI', Arial, sans-serif; /* khop engine.css, khong nap webfont */
+  color: var(--pl-ink);
+  background: var(--pl-bg);
+}
+
+#pipeline-root .pl-wrap { max-width:1360px; margin:0 auto; padding:22px 26px 60px; }
+
+/* ---- Header ---- */
+#pipeline-root .pl-dash-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:18px; flex-wrap:wrap; gap:12px; }
+#pipeline-root .pl-title { font-size:22px; margin:0 0 4px; letter-spacing:.2px; font-weight:700; }
+#pipeline-root .pl-subtitle { color:var(--pl-sub); font-size:13px; }
+
+#pipeline-root .pl-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; background:var(--pl-card); border:1px solid var(--pl-border); border-radius:var(--pl-radius); padding:10px 14px; box-shadow:var(--pl-sh); }
+#pipeline-root .pl-label { font-size:11px; color:var(--pl-sub); font-weight:600; text-transform:uppercase; letter-spacing:.4px; margin-right:4px; display:block; }
+#pipeline-root .pl-select,
+#pipeline-root .pl-input {
+  border:1px solid var(--pl-border); border-radius:var(--pl-radius-sm); padding:6px 8px; font-size:13px; background:#fff; color:var(--pl-ink);
+  font-family: inherit;
+}
+#pipeline-root .pl-btn {
+  border:none; background:var(--pl-navy); color:#fff; padding:7px 12px; border-radius:var(--pl-radius-sm); font-size:12px; cursor:pointer; font-weight:600;
+  font-family: inherit;
+}
+#pipeline-root .pl-btn:hover { background:var(--pl-navy-d); }
+#pipeline-root .pl-btn-export { background:var(--pl-green-dark); }
+#pipeline-root .pl-btn-export:hover { background:var(--pl-green-d); }
+#pipeline-root .pl-filters-divider { width:1px; align-self:stretch; background:var(--pl-border); margin:0 2px; }
+
+/* ---- KPI row ---- */
+#pipeline-root .pl-kpi-row { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:8px; }
+#pipeline-root .pl-kpi-card { background:var(--pl-card); border:1px solid var(--pl-border); border-radius:var(--pl-radius); overflow:hidden; box-shadow:var(--pl-sh-2); transition:transform .15s; }
+#pipeline-root .pl-kpi-card:hover { transform:translateY(-2px); }
+#pipeline-root .pl-kpi-head { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:8px 10px; line-height:1.3; min-height:38px; display:flex; align-items:center; color:#fff; }
+#pipeline-root .pl-kpi-value { padding:14px 10px 16px; font-size:26px; font-weight:800; color:var(--pl-ink); text-align:center; }
+#pipeline-root .pl-kpi-note { grid-column:1/-1; font-size:12.5px; color:var(--pl-sub); padding:6px 4px 18px; font-style:italic; }
+/* Color-coded per KPI theme: totals = charcoal/teal, Go Live = green, Verbal = navy, Potential = orange */
+#pipeline-root .pl-kpi-charcoal .pl-kpi-head { background:var(--pl-ink); }
+#pipeline-root .pl-kpi-teal .pl-kpi-head { background:var(--pl-blue); }
+#pipeline-root .pl-kpi-green .pl-kpi-head { background:var(--pl-green-dark); }
+#pipeline-root .pl-kpi-navy .pl-kpi-head { background:var(--pl-navy); }
+#pipeline-root .pl-kpi-orange .pl-kpi-head { background:var(--pl-orange); }
+#pipeline-root .pl-kpi-charcoal .pl-kpi-value { color:var(--pl-ink); }
+#pipeline-root .pl-kpi-teal .pl-kpi-value { color:var(--pl-blue); }
+#pipeline-root .pl-kpi-green .pl-kpi-value { color:var(--pl-green-dark); }
+#pipeline-root .pl-kpi-navy .pl-kpi-value { color:var(--pl-navy); }
+#pipeline-root .pl-kpi-orange .pl-kpi-value { color:var(--pl-orange); }
+
+/* ---- KPI mode badge (che do Official vs Filtered — xem pipeline.js > updateKPIs) ---- */
+#pipeline-root .pl-kpi-mode-bar { grid-column:1/-1; margin-bottom:2px; }
+#pipeline-root .pl-kpi-mode {
+  display:inline-block; font-size:11.5px; font-weight:600; letter-spacing:.2px;
+  padding:4px 10px; border-radius:999px; border:1px solid transparent;
+}
+#pipeline-root .pl-kpi-mode-official { background:var(--pl-blue-l); color:var(--pl-navy); border-color:#C7DBF3; }
+#pipeline-root .pl-kpi-mode-filtered { background:var(--pl-orange-l); color:#8A4B04; border-color:#F0D9AE; }
+
+/* ---- Charts row ---- */
+#pipeline-root .pl-chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+#pipeline-root .pl-chart-card { background:var(--pl-card); border:1px solid var(--pl-border); border-radius:var(--pl-radius); padding:6px 8px 4px; box-shadow:var(--pl-sh-2); }
+#pipeline-root .pl-echart { width:100%; height:340px; }
+
+/* ---- Section blocks ---- */
+#pipeline-root .pl-section { margin-bottom:22px; background:var(--pl-card); border:1px solid var(--pl-border); border-radius:var(--pl-radius); overflow:hidden; box-shadow:var(--pl-sh-2); }
+#pipeline-root .pl-section-head { padding:9px 14px; font-weight:700; font-size:13.5px; color:#fff; display:flex; justify-content:space-between; align-items:center; }
+#pipeline-root .pl-count-pill { background:rgba(255,255,255,.22); border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; }
+#pipeline-root .pl-go-live .pl-section-head { background:var(--pl-green-dark); }
+#pipeline-root .pl-verbal .pl-section-head { background:var(--pl-navy); }
+#pipeline-root .pl-potential .pl-section-head { background:var(--pl-orange); }
+
+/* ---- Tables (class-based only; no bare table/th/td/tr selectors) ---- */
+#pipeline-root .pl-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+#pipeline-root .pl-th { color:#fff; font-weight:700; text-align:left; padding:8px 10px; font-size:11.5px; white-space:pre-line; line-height:1.25; }
+#pipeline-root .pl-go-live .pl-th { background:var(--pl-green-dark); }
+#pipeline-root .pl-verbal .pl-th { background:var(--pl-navy); }
+#pipeline-root .pl-potential .pl-th { background:var(--pl-orange); }
+#pipeline-root .pl-td { padding:7px 10px; border-bottom:1px solid var(--pl-border); color:var(--pl-ink); }
+#pipeline-root .pl-tr:hover { background:var(--pl-tint); }
+#pipeline-root .pl-tr.pl-hidden { display:none; }
+#pipeline-root .pl-num { text-align:right; font-variant-numeric:tabular-nums; }
+#pipeline-root .pl-status-pill { font-weight:700; font-size:11.5px; padding:2px 0; }
+#pipeline-root .pl-status-Lived { color:var(--pl-green-status); }
+#pipeline-root .pl-status-Onboarding { color:var(--pl-navy-status); }
+#pipeline-root .pl-status-Verbally-Agreement { color:var(--pl-amber-status); }
+#pipeline-root .pl-status-Negotiation { color:var(--pl-orange-status); }
+#pipeline-root .pl-empty-row .pl-td { text-align:center; color:var(--pl-sub); font-style:italic; padding:16px; }
+
+#pipeline-root .pl-footer-note { font-size:11.5px; color:var(--pl-sub); margin-top:10px; line-height:1.5; }
+
+@media (max-width: 1000px) {
+  #pipeline-root .pl-kpi-row { grid-template-columns:repeat(3,1fr); }
+  #pipeline-root .pl-chart-row { grid-template-columns:1fr; }
+  #pipeline-root .pl-table { font-size:11.5px; }
+}
+@media (max-width: 620px) {
+  #pipeline-root .pl-kpi-row { grid-template-columns:repeat(2,1fr); }
+}

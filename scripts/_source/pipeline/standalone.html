@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<!--
+  standalone.html - FOR LOCAL TESTING / DIFFING ONLY, not part of the module.
+  Everything below is inlined (no fetch(), no local server needed) so this
+  file can be opened directly via double-click / file:// and still work,
+  which a fetch()-based version cannot do due to browser CORS rules on
+  file:// URLs. This is purely a self-check convenience file - the real
+  integration in the target app loads pipeline.css / pipeline.body.html /
+  pipeline.js as separate files (see README-MERGE.md).
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Tracker - standalone preview</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+/*
+  pipeline.css
+  Every single selector below is literally prefixed with "#pipeline-root"
+  (per the contract's own example: "#pipeline-root .pl-card { ... }").
+  Every class carries the "pl-" prefix. There are no selectors on body,
+  html, *, or bare elements (h1{}, table{}, button{}, etc.) anywhere in
+  this file. No @import, no CSS reset/normalize, no external font.
+*/
+
+#pipeline-root,
+#pipeline-root * {
+  box-sizing: border-box;
+}
+
+#pipeline-root {
+  --pl-yellow:#FFFF00;
+  --pl-yellow-soft:#FFF9C4;
+  --pl-green-dark:#275417;
+  --pl-green-status:#548235;
+  --pl-navy:#1F3864;
+  --pl-navy-status:#1F4E78;
+  --pl-orange:#E97132;
+  --pl-amber-status:#BF8F00;
+  --pl-orange-status:#C55A11;
+  --pl-blue-accent:#2A78D6;
+  --pl-gray-accent:#898781;
+  --pl-ink:#1B1F23;
+  --pl-sub:#5B6470;
+  --pl-border:#D9DCE1;
+  --pl-bg:#EEF1F5;
+  --pl-card:#FFFFFF;
+
+  font-family: "Segoe UI", "Aptos Narrow", Arial, sans-serif; /* system stack only, no webfont */
+  color: var(--pl-ink);
+  background: var(--pl-bg);
+}
+
+#pipeline-root .pl-wrap { max-width:1360px; margin:0 auto; padding:22px 26px 60px; }
+
+/* ---- Header ---- */
+#pipeline-root .pl-dash-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:18px; flex-wrap:wrap; gap:12px; }
+#pipeline-root .pl-title { font-size:22px; margin:0 0 4px; letter-spacing:.2px; font-weight:700; }
+#pipeline-root .pl-subtitle { color:var(--pl-sub); font-size:13px; }
+
+#pipeline-root .pl-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; background:var(--pl-card); border:1px solid var(--pl-border); border-radius:10px; padding:10px 14px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+#pipeline-root .pl-label { font-size:11px; color:var(--pl-sub); font-weight:600; text-transform:uppercase; letter-spacing:.4px; margin-right:4px; display:block; }
+#pipeline-root .pl-select,
+#pipeline-root .pl-input {
+  border:1px solid var(--pl-border); border-radius:6px; padding:6px 8px; font-size:13px; background:#fff; color:var(--pl-ink);
+  font-family: inherit;
+}
+#pipeline-root .pl-btn {
+  border:none; background:var(--pl-navy); color:#fff; padding:7px 12px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;
+  font-family: inherit;
+}
+#pipeline-root .pl-btn:hover { background:#142a4d; }
+#pipeline-root .pl-btn-export { background:#1B7A43; }
+#pipeline-root .pl-btn-export:hover { background:#155f34; }
+#pipeline-root .pl-filters-divider { width:1px; align-self:stretch; background:var(--pl-border); margin:0 2px; }
+
+/* ---- KPI row ---- */
+#pipeline-root .pl-kpi-row { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:8px; }
+#pipeline-root .pl-kpi-card { background:var(--pl-card); border:1px solid var(--pl-border); border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.05); transition:transform .15s; }
+#pipeline-root .pl-kpi-card:hover { transform:translateY(-2px); }
+#pipeline-root .pl-kpi-head { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:8px 10px; line-height:1.3; min-height:38px; display:flex; align-items:center; color:#fff; }
+#pipeline-root .pl-kpi-value { padding:14px 10px 16px; font-size:26px; font-weight:800; color:var(--pl-ink); text-align:center; }
+#pipeline-root .pl-kpi-note { grid-column:1/-1; font-size:12.5px; color:var(--pl-sub); padding:6px 4px 18px; font-style:italic; }
+/* Color-coded per KPI theme: totals = charcoal/teal, Go Live = green, Verbal = navy, Potential = orange */
+#pipeline-root .pl-kpi-charcoal .pl-kpi-head { background:#37474F; }
+#pipeline-root .pl-kpi-teal .pl-kpi-head { background:#0E7C86; }
+#pipeline-root .pl-kpi-green .pl-kpi-head { background:#2E7D32; }
+#pipeline-root .pl-kpi-navy .pl-kpi-head { background:#1F3864; }
+#pipeline-root .pl-kpi-orange .pl-kpi-head { background:#E97132; }
+#pipeline-root .pl-kpi-charcoal .pl-kpi-value { color:#37474F; }
+#pipeline-root .pl-kpi-teal .pl-kpi-value { color:#0E7C86; }
+#pipeline-root .pl-kpi-green .pl-kpi-value { color:#2E7D32; }
+#pipeline-root .pl-kpi-navy .pl-kpi-value { color:#1F3864; }
+#pipeline-root .pl-kpi-orange .pl-kpi-value { color:#E97132; }
+
+/* ---- Charts row ---- */
+#pipeline-root .pl-chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+#pipeline-root .pl-chart-card { background:var(--pl-card); border:1px solid var(--pl-border); border-radius:10px; padding:6px 8px 4px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+#pipeline-root .pl-echart { width:100%; height:340px; }
+
+/* ---- Section blocks ---- */
+#pipeline-root .pl-section { margin-bottom:22px; background:var(--pl-card); border:1px solid var(--pl-border); border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+#pipeline-root .pl-section-head { padding:9px 14px; font-weight:700; font-size:13.5px; color:#fff; display:flex; justify-content:space-between; align-items:center; }
+#pipeline-root .pl-count-pill { background:rgba(255,255,255,.22); border-radius:999px; padding:2px 10px; font-size:11px; font-weight:600; }
+#pipeline-root .pl-go-live .pl-section-head { background:var(--pl-green-dark); }
+#pipeline-root .pl-verbal .pl-section-head { background:var(--pl-navy); }
+#pipeline-root .pl-potential .pl-section-head { background:var(--pl-orange); }
+
+/* ---- Tables (class-based only; no bare table/th/td/tr selectors) ---- */
+#pipeline-root .pl-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+#pipeline-root .pl-th { color:#fff; font-weight:700; text-align:left; padding:8px 10px; font-size:11.5px; white-space:pre-line; line-height:1.25; }
+#pipeline-root .pl-go-live .pl-th { background:var(--pl-green-dark); }
+#pipeline-root .pl-verbal .pl-th { background:var(--pl-navy); }
+#pipeline-root .pl-potential .pl-th { background:var(--pl-orange); }
+#pipeline-root .pl-td { padding:7px 10px; border-bottom:1px solid var(--pl-border); color:var(--pl-ink); }
+#pipeline-root .pl-tr:hover { background:#F7F9FC; }
+#pipeline-root .pl-tr.pl-hidden { display:none; }
+#pipeline-root .pl-num { text-align:right; font-variant-numeric:tabular-nums; }
+#pipeline-root .pl-status-pill { font-weight:700; font-size:11.5px; padding:2px 0; }
+#pipeline-root .pl-status-Lived { color:var(--pl-green-status); }
+#pipeline-root .pl-status-Onboarding { color:var(--pl-navy-status); }
+#pipeline-root .pl-status-Verbally-Agreement { color:var(--pl-amber-status); }
+#pipeline-root .pl-status-Negotiation { color:var(--pl-orange-status); }
+#pipeline-root .pl-empty-row .pl-td { text-align:center; color:var(--pl-sub); font-style:italic; padding:16px; }
+
+#pipeline-root .pl-footer-note { font-size:11.5px; color:var(--pl-sub); margin-top:10px; line-height:1.5; }
+
+@media (max-width: 1000px) {
+  #pipeline-root .pl-kpi-row { grid-template-columns:repeat(3,1fr); }
+  #pipeline-root .pl-chart-row { grid-template-columns:1fr; }
+  #pipeline-root .pl-table { font-size:11.5px; }
+}
+@media (max-width: 620px) {
+  #pipeline-root .pl-kpi-row { grid-template-columns:repeat(2,1fr); }
+}
+
+</style>
+</head>
+<body>
+
+<div id="app-mount-point">
+<!--
+  pipeline.body.html
+  Pure markup only — no html/head/body wrapper tags, no script or style tags
+  inside this file. This whole block is meant to be injected via
+  dangerouslySetInnerHTML into a container element. After it is in the DOM,
+  the host app must call:
+    window.PipelineTracker.mount(containerEl, data)
+  where containerEl is the element that now contains (or equals) #pipeline-root.
+  See README-MERGE.md for the full embedding contract.
+-->
+<div id="pipeline-root">
+<div class="pl-wrap">
+
+  <div class="pl-dash-header">
+    <div>
+      <h1 class="pl-title">VA Distribution Performance — 2026</h1>
+      <div class="pl-subtitle">Brand pipeline &amp; NMV tracking · Go Live · Verbal Agreement · Potential deals</div>
+    </div>
+    <div class="pl-filters">
+      <div><label class="pl-label">Stage</label>
+        <select id="pl-f-stage" class="pl-select">
+          <option value="all">All stages</option>
+          <option value="Go Live">Go Live</option>
+          <option value="Verbal">Verbal / Onboarding</option>
+          <option value="Potential">Potential</option>
+        </select>
+      </div>
+      <div><label class="pl-label">Tier</label><select id="pl-f-tier" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">CD</label><select id="pl-f-cd" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">CAT</label><select id="pl-f-cat" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">VA Name</label><select id="pl-f-va" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">Channel</label><select id="pl-f-channel" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">Status</label><select id="pl-f-status" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">Elephant</label><select id="pl-f-elephant" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">Search</label>
+        <input id="pl-f-search" class="pl-input" type="text" placeholder="Brand, CD, VA..."/>
+      </div>
+      <div class="pl-filters-divider"></div>
+      <div><label class="pl-label">Time view</label>
+        <select id="pl-f-time-mode" class="pl-select">
+          <option value="all">All time</option>
+          <option value="day">By Day</option>
+          <option value="week">By Week</option>
+          <option value="month">By Month</option>
+        </select>
+      </div>
+      <div id="pl-f-time-day-wrap" class="pl-time-wrap" style="display:none"><label class="pl-label">Pick day</label>
+        <input id="pl-f-time-day" class="pl-input" type="date" min="2026-01-01" max="2026-12-31"/>
+      </div>
+      <div id="pl-f-time-month-wrap" class="pl-time-wrap" style="display:none"><label class="pl-label">Pick month</label>
+        <input id="pl-f-time-month" class="pl-input" type="month" min="2026-01" max="2026-12"/>
+      </div>
+      <button id="pl-f-reset" class="pl-btn">Reset</button>
+      <button id="pl-f-export" class="pl-btn pl-btn-export">⬇ Export Excel</button>
+    </div>
+  </div>
+  <div class="pl-footer-note" id="pl-time-range-note"></div>
+  <div class="pl-footer-note" id="pl-validation-note"></div>
+
+  <!-- KPI CARDS -->
+  <div class="pl-kpi-row">
+    <div class="pl-kpi-card pl-kpi-charcoal"><div class="pl-kpi-head">Total NMV FC 2026</div><div class="pl-kpi-value" id="pl-kpi-nmv-fc">-</div></div>
+    <div class="pl-kpi-card pl-kpi-teal"><div class="pl-kpi-head">Total NMV FC 2026 (USD)</div><div class="pl-kpi-value" id="pl-kpi-nmv-fc-usd">-</div></div>
+    <div class="pl-kpi-card pl-kpi-green"><div class="pl-kpi-head">Total NMV Go Live YTD 2026</div><div class="pl-kpi-value" id="pl-kpi-nmv-golive">-</div></div>
+    <div class="pl-kpi-card pl-kpi-green"><div class="pl-kpi-head">Total Brand Golive YTD 2026</div><div class="pl-kpi-value" id="pl-kpi-golive">-</div></div>
+    <div class="pl-kpi-card pl-kpi-navy"><div class="pl-kpi-head">Total Brand Verbal YTD 2026</div><div class="pl-kpi-value" id="pl-kpi-verbal">-</div></div>
+    <div class="pl-kpi-card pl-kpi-orange"><div class="pl-kpi-head">Total Brand Potential</div><div class="pl-kpi-value" id="pl-kpi-potential">-</div></div>
+    <div class="pl-kpi-note" id="pl-kpi-breakdown-note"></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="pl-chart-row">
+    <div class="pl-chart-card"><div id="pl-chart1" class="pl-echart"></div></div>
+    <div class="pl-chart-card"><div id="pl-chart2" class="pl-echart"></div></div>
+  </div>
+
+  <!-- GO LIVE TABLE -->
+  <div class="pl-section pl-go-live">
+    <div class="pl-section-head"><span>⊙ GO LIVE DEAL</span><span class="pl-count-pill">Win-rate: 100%</span></div>
+    <table id="pl-tbl-go-live" class="pl-table">
+      <thead><tr>
+        <th class="pl-th">No.</th><th class="pl-th">Brand</th><th class="pl-th">Tier</th><th class="pl-th">Model</th><th class="pl-th">CD</th><th class="pl-th">ELEPHANT</th><th class="pl-th">CAT</th>
+        <th class="pl-th">VA Name</th><th class="pl-th">Channel</th><th class="pl-th">Status</th><th class="pl-th">Lived&#10;Month</th><th class="pl-th">Lived Date&#10;(mm/dd/yyyy)</th>
+        <th class="pl-th">NMV 2026&#10;(USD)</th><th class="pl-th">NMV 2026&#10;(VND)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- VERBAL TABLE -->
+  <div class="pl-section pl-verbal">
+    <div class="pl-section-head"><span>⊙ VERBAL AGREEMENT &amp; ONBOARDING DEAL</span><span class="pl-count-pill">Win-rate &gt;80%</span></div>
+    <table id="pl-tbl-verbal" class="pl-table">
+      <thead><tr>
+        <th class="pl-th">No.</th><th class="pl-th">Brand</th><th class="pl-th">Tier</th><th class="pl-th">Model</th><th class="pl-th">CD</th><th class="pl-th">ELEPHANT</th><th class="pl-th">CAT</th>
+        <th class="pl-th">VA Name</th><th class="pl-th">Channel</th><th class="pl-th">Status</th><th class="pl-th">Lived Month&#10;(based on BP)</th><th class="pl-th">Expected Lived Date&#10;(mm/dd/yyyy)</th>
+        <th class="pl-th">NMV 2026&#10;(USD)</th><th class="pl-th">NMV 2026&#10;(VND)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- POTENTIAL TABLE -->
+  <div class="pl-section pl-potential">
+    <div class="pl-section-head"><span>⊙ POTENTIAL DEAL</span><span class="pl-count-pill">Win-rate: 40 – 60%</span></div>
+    <table id="pl-tbl-potential" class="pl-table">
+      <thead><tr>
+        <th class="pl-th">No.</th><th class="pl-th">Brand</th><th class="pl-th">Tier</th><th class="pl-th">Model</th><th class="pl-th">CD</th><th class="pl-th">ELEPHANT</th><th class="pl-th">CAT</th>
+        <th class="pl-th">VA Name</th><th class="pl-th">Channel</th><th class="pl-th">Status</th><th class="pl-th">Lived Month&#10;(based on BP)</th><th class="pl-th">Expected Lived Date&#10;(mm/dd/yyyy)</th>
+        <th class="pl-th">NMV live &#8594; EO 26&#10;(USD)</th><th class="pl-th">NMV live &#8594; EO 26&#10;(VND)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="pl-footer-note" id="pl-footer-note"></div>
+
+</div>
+</div>
+
+</div>
+
+<script>
+/*
+  pipeline.js
+  Vanilla JS only. No React/JSX/TypeScript/bundler/import-export.
+  Exposes exactly one global: window.PipelineTracker, with:
+    PipelineTracker.mount(rootEl, data)   - render into rootEl
+    PipelineTracker.unmount()             - remove listeners/timers/chart instances
+    PipelineTracker.setData(data)         - load new data and re-render
+  Nothing runs at load time — no DOMContentLoaded/onload/top-level init calls.
+  All DOM lookups are scoped to the rootEl passed into mount(), not `document`,
+  except the two things the constraints explicitly call out as acceptable to
+  attach to window: a single `resize` listener (removed in unmount) and the
+  window.PipelineTracker global itself.
+
+  Optional peer libraries (loaded by the HOST page, not by this file):
+    - echarts   (https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js)
+                used for the two charts. If window.echarts is missing at mount
+                time, charts are skipped (console.warn) and the rest of the
+                dashboard still works.
+    - ExcelJS   (https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js)
+                used only for the "Export Excel" button. If window.ExcelJS is
+                missing, the button is disabled with an explanatory title.
+  See README-MERGE.md for exact versions/URLs and the host-app vendoring note.
+*/
+(function () {
+  'use strict';
+
+  /* ============================================================
+     Module-private state (nothing here touches `window` directly)
+     ============================================================ */
+  var rootEl = null;
+  var deals = [];               // current dataset, set via mount()/setData()
+  var VALID = {};                // current validation/dropdown lists
+  var chart1 = null;
+  var chart2 = null;
+  var boundListeners = [];       // [{el, type, handler}] added during mount, removed on unmount/cleanup
+  var resizeHandler = null;      // the one window-level listener we're allowed to add
+  var mounted = false;
+
+  var monthsOrder = [1, 2, 3, 4, 5, 6, 7];
+  var stageCats = ['Go Live', 'Verbal / Onboarding', 'Potential'];
+  var stageColors = ['#2E7D32', '#1F3864', '#E97132']; // matches table header colors
+
+  /* ============================================================
+     Small helpers (pure functions, no DOM/global side effects)
+     ============================================================ */
+  function fmtBil(vnd) {
+    return (vnd / 1e9).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' BIL';
+  }
+  function fmtUSDBil(usd) {
+    return '$' + (usd / 1e6).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M';
+  }
+  function fmtUSD(n) { return '$' + n.toLocaleString('en-US'); }
+  function fmtVND(n) { return n.toLocaleString('en-US'); }
+  function plStatusClass(s) { return 'pl-status-' + String(s).replace(/\s+/g, '-'); }
+  function norm(s) { return (s || '').toString().trim().toLowerCase(); }
+  function monthLabel(m) { return ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'][m] || String(m); }
+
+  // brand_key = brand name, lowercased, Vietnamese diacritics stripped, [a-z0-9] only.
+  // Exposed for reuse (see mount/setData) and documented in SCHEMA.md.
+  function toBrandKey(str) {
+    if (!str) return '';
+    var s = String(str).toLowerCase();
+    s = s.replace(/đ/g, 'd');
+    try {
+      s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    } catch (e) { /* normalize not supported: fall through with best-effort ascii */ }
+    s = s.replace(/[^a-z0-9]/g, '');
+    return s;
+  }
+
+  function normalizeDeals(rawDeals) {
+    return (rawDeals || []).map(function (d) {
+      var copy = {};
+      for (var k in d) { if (Object.prototype.hasOwnProperty.call(d, k)) copy[k] = d[k]; }
+      if (!copy.brand_key) copy.brand_key = toBrandKey(copy.brand);
+      if (copy.dateISO === undefined) copy.dateISO = null;
+      return copy;
+    });
+  }
+
+  /* ============================================================
+     Scoped DOM helpers — always relative to rootEl, never `document`
+     ============================================================ */
+  function qs(sel) { return rootEl ? rootEl.querySelector(sel) : null; }
+  function qsa(sel) { return rootEl ? rootEl.querySelectorAll(sel) : []; }
+  function byId(id) { return qs('#' + id); }
+
+  function on(el, type, handler) {
+    if (!el) return;
+    el.addEventListener(type, handler);
+    boundListeners.push({ el: el, type: type, handler: handler });
+  }
+
+  /* ============================================================
+     Time filter helpers (Day / Week / Month)
+     ============================================================ */
+  function isoToDate(iso) { return new Date(iso + 'T00:00:00'); }
+  function mondayOf(iso) {
+    var dt = isoToDate(iso);
+    var dow = dt.getDay(); // 0=Sun..6=Sat
+    var diff = (dow === 0 ? -6 : 1 - dow);
+    var mon = new Date(dt); mon.setDate(dt.getDate() + diff);
+    return mon;
+  }
+  function fmtShort(dt) { return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+
+  function inTimeRange(d) {
+    var modeEl = byId('pl-f-time-mode');
+    var mode = modeEl ? modeEl.value : 'all';
+    if (mode === 'all') return true;
+    if (mode === 'month') {
+      var mVal = byId('pl-f-time-month').value; // 'YYYY-MM'
+      if (!mVal) return true;
+      var m = Number(mVal.split('-')[1]);
+      // Month view uses the business "Lived / Expected Lived Month" field, so
+      // it still matches deals whose exact date is TBU.
+      return d.month === m;
+    }
+    // Day / Week views need an exact date - rows with date = "TBU" have none
+    // and are excluded (there's no calendar day to place them on yet).
+    if (!d.dateISO) return false;
+    var dVal = byId('pl-f-time-day').value; // 'YYYY-MM-DD'
+    if (!dVal) return true;
+    if (mode === 'day') return d.dateISO === dVal;
+    if (mode === 'week') {
+      var mon = mondayOf(dVal);
+      var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      var dDate = isoToDate(d.dateISO);
+      return dDate >= mon && dDate <= sun;
+    }
+    return true;
+  }
+
+  function updateTimeRangeNote() {
+    var mode = byId('pl-f-time-mode').value;
+    var note = byId('pl-time-range-note');
+    if (!note) return;
+    if (mode === 'week') {
+      var val = byId('pl-f-time-day').value;
+      if (val) {
+        var mon = mondayOf(val);
+        var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+        note.textContent = 'Showing week: ' + fmtShort(mon) + ' \u2013 ' + fmtShort(sun) +
+          ', 2026 (rows with no confirmed date/"TBU" are excluded in Day/Week view).';
+        return;
+      }
+    }
+    if (mode === 'day' || mode === 'week') {
+      note.textContent = 'Pick a date above to see only deals landing on that day/week ("TBU" rows are excluded until they get a confirmed date).';
+      return;
+    }
+    note.textContent = '';
+  }
+
+  /* ============================================================
+     Filtering
+     ============================================================ */
+  function getFilteredDeals() {
+    var stage = byId('pl-f-stage').value;
+    var tier = byId('pl-f-tier').value;
+    var cd = byId('pl-f-cd').value;
+    var cat = byId('pl-f-cat').value;
+    var va = byId('pl-f-va').value;
+    var channel = byId('pl-f-channel').value;
+    var status = byId('pl-f-status').value;
+    var elephant = byId('pl-f-elephant').value;
+    var search = norm(byId('pl-f-search').value);
+
+    return deals.filter(function (d) {
+      if (stage !== 'all' && d.stage !== stage) return false;
+      if (tier !== 'all' && norm(d.tier) !== norm(tier)) return false;
+      if (cd !== 'all' && norm(d.cd) !== norm(cd)) return false;
+      if (cat !== 'all' && norm(d.cat) !== norm(cat)) return false;
+      if (va !== 'all' && norm(d.va) !== norm(va)) return false;
+      // Channel in the deal table can combine several validation values
+      // (e.g. "SHP & TTS"), so match if the selected channel is a token of it.
+      if (channel !== 'all' && norm(d.channel).indexOf(norm(channel)) === -1) return false;
+      if (status !== 'all' && norm(d.status) !== norm(status)) return false;
+      if (elephant !== 'all' && norm(d.elephant) !== norm(elephant)) return false;
+      if (!inTimeRange(d)) return false;
+      if (search) {
+        var hay = norm(d.brand + ' ' + d.cd + ' ' + d.va + ' ' + d.cat);
+        if (hay.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  /* ============================================================
+     Rendering: tables / KPIs / charts
+     ============================================================ */
+  function renderTables(filtered) {
+    var groups = { 'Go Live': '#pl-tbl-go-live tbody', 'Verbal': '#pl-tbl-verbal tbody', 'Potential': '#pl-tbl-potential tbody' };
+    Object.keys(groups).forEach(function (stage) {
+      var tbody = qs(groups[stage]);
+      if (!tbody) return;
+      var rows = filtered.filter(function (d) { return d.stage === stage; });
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr class="pl-tr pl-empty-row"><td class="pl-td" colspan="14">No deals match the current filters</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(function (d) {
+        return '' +
+          '<tr class="pl-tr">' +
+          '<td class="pl-td">' + d.no + '</td><td class="pl-td">' + d.brand + '</td><td class="pl-td">' + d.tier + '</td><td class="pl-td">' + d.model + '</td>' +
+          '<td class="pl-td">' + d.cd + '</td><td class="pl-td">' + d.elephant + '</td><td class="pl-td">' + d.cat + '</td><td class="pl-td">' + d.va + '</td><td class="pl-td">' + d.channel + '</td>' +
+          '<td class="pl-td pl-status-pill ' + plStatusClass(d.status) + '">' + d.status + '</td>' +
+          '<td class="pl-td">' + d.month + '</td><td class="pl-td">' + d.date + '</td>' +
+          '<td class="pl-td pl-num">' + fmtUSD(d.usd) + '</td><td class="pl-td pl-num">' + fmtVND(d.vnd) + '</td>' +
+          '</tr>';
+      }).join('');
+    });
+  }
+
+  function updateKPIs(filtered) {
+    var nmvFC = filtered.reduce(function (s, d) { return s + d.vnd; }, 0);
+    var nmvFCUsd = filtered.reduce(function (s, d) { return s + d.usd; }, 0);
+    var goLiveRows = filtered.filter(function (d) { return d.stage === 'Go Live'; });
+    var verbalRows = filtered.filter(function (d) { return d.stage === 'Verbal'; });
+    var potentialRows = filtered.filter(function (d) { return d.stage === 'Potential'; });
+    var nmvGoLive = goLiveRows.reduce(function (s, d) { return s + d.vnd; }, 0);
+
+    var elFc = byId('pl-kpi-nmv-fc'); if (elFc) elFc.textContent = fmtBil(nmvFC);
+    var elFcUsd = byId('pl-kpi-nmv-fc-usd'); if (elFcUsd) elFcUsd.textContent = fmtUSDBil(nmvFCUsd);
+    var elGl = byId('pl-kpi-nmv-golive'); if (elGl) elGl.textContent = fmtBil(nmvGoLive);
+    var elGlCount = byId('pl-kpi-golive'); if (elGlCount) elGlCount.textContent = goLiveRows.length;
+    var elVbCount = byId('pl-kpi-verbal'); if (elVbCount) elVbCount.textContent = verbalRows.length;
+    var elPtCount = byId('pl-kpi-potential'); if (elPtCount) elPtCount.textContent = potentialRows.length;
+
+    var note = byId('pl-kpi-breakdown-note');
+    if (note) {
+      note.textContent = 'Breakdown of Total NMV FC 2026: ' + fmtBil(nmvFC) + ' VND (' + fmtUSDBil(nmvFCUsd) + ') \u2014 Go Live ' + fmtBil(nmvGoLive) +
+        ' \u00b7 Verbal ' + fmtBil(verbalRows.reduce(function (s, d) { return s + d.vnd; }, 0)) +
+        ' \u00b7 Potential ' + fmtBil(potentialRows.reduce(function (s, d) { return s + d.vnd; }, 0)) +
+        (filtered.length !== deals.length ? '  (based on current filter selection)' : '');
+    }
+  }
+
+  function sumByMonth(rows, stageFilter, field, divisor) {
+    var map = {};
+    monthsOrder.forEach(function (m) { map[m] = 0; });
+    rows.filter(stageFilter).forEach(function (d) { map[d.month] += d[field] / divisor; });
+    return monthsOrder.map(function (m) { return Math.round(map[m] * 100) / 100; });
+  }
+
+  function updateChart1(filtered) {
+    if (!chart1) return;
+    var confirmedVnd = sumByMonth(filtered, function (d) { return d.stage === 'Go Live'; }, 'vnd', 1e6);
+    var pipelineVnd = sumByMonth(filtered, function (d) { return d.stage !== 'Go Live'; }, 'vnd', 1e6);
+    var confirmedUsd = sumByMonth(filtered, function (d) { return d.stage === 'Go Live'; }, 'usd', 1e3);
+    var pipelineUsd = sumByMonth(filtered, function (d) { return d.stage !== 'Go Live'; }, 'usd', 1e3);
+    chart1.setOption({
+      series: [
+        { name: 'Confirmed NMV (Go Live) \u2014 VND', data: confirmedVnd },
+        { name: 'Pipeline NMV (Verbal + Potential) \u2014 VND', data: pipelineVnd },
+        { name: 'Confirmed NMV (Go Live) \u2014 USD', data: confirmedUsd },
+        { name: 'Pipeline NMV (Verbal + Potential) \u2014 USD', data: pipelineUsd }
+      ]
+    });
+  }
+
+  function updateChart2(filtered) {
+    if (!chart2) return;
+    var counts = [
+      filtered.filter(function (d) { return d.stage === 'Go Live'; }).length,
+      filtered.filter(function (d) { return d.stage === 'Verbal'; }).length,
+      filtered.filter(function (d) { return d.stage === 'Potential'; }).length
+    ];
+    chart2.setOption({ series: [{ data: counts.map(function (v, i) { return { value: v, itemStyle: { color: stageColors[i] } }; }) }] });
+  }
+
+  function initCharts() {
+    if (typeof window.echarts === 'undefined') {
+      console.warn('PipelineTracker: window.echarts not found — charts will be skipped. ' +
+        'Load echarts before calling PipelineTracker.mount() if you want charts. See README-MERGE.md.');
+      chart1 = null; chart2 = null;
+      return;
+    }
+    var el1 = byId('pl-chart1');
+    var el2 = byId('pl-chart2');
+    if (el1) {
+      chart1 = window.echarts.init(el1);
+      chart1.setOption({
+        title: { text: 'Confirmed vs Pipeline NMV \u2014 by Month 2026', left: 'center', top: 6, textStyle: { fontSize: 13, fontWeight: 600 } },
+        tooltip: {
+          trigger: 'axis', axisPointer: { type: 'shadow' },
+          formatter: function (params) {
+            var out = params[0].axisValueLabel + '<br/>';
+            params.forEach(function (p) {
+              var isUsd = p.seriesName.indexOf('USD') !== -1;
+              var val = isUsd ? ('$' + p.value.toLocaleString('en-US') + 'K') : (p.value.toLocaleString('en-US') + ' M VND');
+              out += p.marker + ' ' + p.seriesName + ': <b>' + val + '</b><br/>';
+            });
+            return out;
+          }
+        },
+        legend: { bottom: 0, type: 'scroll', data: ['Confirmed NMV (Go Live) \u2014 VND', 'Pipeline NMV (Verbal + Potential) \u2014 VND', 'Confirmed NMV (Go Live) \u2014 USD', 'Pipeline NMV (Verbal + Potential) \u2014 USD'] },
+        grid: { left: 60, right: 60, top: 46, bottom: 56 },
+        xAxis: { type: 'category', data: monthsOrder.map(monthLabel), axisTick: { show: false } },
+        yAxis: [
+          { type: 'value', name: 'Mil VND', axisLabel: { formatter: function (v) { return (v / 1000).toFixed(0) + 'k'; } } },
+          { type: 'value', name: 'USD ($K)', axisLabel: { formatter: function (v) { return '$' + v.toLocaleString('en-US'); } }, splitLine: { show: false } }
+        ],
+        series: [
+          { name: 'Confirmed NMV (Go Live) \u2014 VND', type: 'bar', data: [], itemStyle: { color: '#898781' }, barGap: '20%' },
+          { name: 'Pipeline NMV (Verbal + Potential) \u2014 VND', type: 'bar', data: [], itemStyle: { color: '#2A78D6' } },
+          { name: 'Confirmed NMV (Go Live) \u2014 USD', type: 'bar', yAxisIndex: 1, data: [], itemStyle: { color: '#2E7D32' } },
+          { name: 'Pipeline NMV (Verbal + Potential) \u2014 USD', type: 'bar', yAxisIndex: 1, data: [], itemStyle: { color: '#E97132' } }
+        ],
+        animationDuration: 600
+      });
+    }
+    if (el2) {
+      chart2 = window.echarts.init(el2);
+      chart2.setOption({
+        title: { text: 'Brand Count \u2014 by Deal Stage', left: 'center', top: 6, textStyle: { fontSize: 13, fontWeight: 600 } },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: function (v) { return v + ' brand' + (v === 1 ? '' : 's'); } },
+        grid: { left: 50, right: 30, top: 46, bottom: 20 },
+        xAxis: { type: 'category', data: stageCats, axisTick: { show: false } },
+        yAxis: { type: 'value', name: 'Brands', minInterval: 1 },
+        series: [{ name: 'Brand Count', type: 'bar', data: [], barWidth: '42%', label: { show: true, position: 'top', fontWeight: 700 }, itemStyle: { borderRadius: [6, 6, 0, 0] } }],
+        animationDuration: 600
+      });
+    }
+    resizeHandler = function () { if (chart1) chart1.resize(); if (chart2) chart2.resize(); };
+    window.addEventListener('resize', resizeHandler);
+  }
+
+  /* ============================================================
+     Filter dropdown population
+     ============================================================ */
+  function populateSelect(id, options) {
+    var sel = byId(id);
+    if (!sel) return;
+    // Keep only the first ("All") option, drop anything added by a previous mount/setData.
+    while (sel.options.length > 1) sel.remove(1);
+    (options || []).forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    });
+  }
+
+  function populateAllSelects() {
+    populateSelect('pl-f-tier', VALID.tier);
+    populateSelect('pl-f-cd', VALID.cd);
+    populateSelect('pl-f-cat', VALID.cat);
+    populateSelect('pl-f-va', VALID.vaName);
+    populateSelect('pl-f-channel', VALID.channel);
+    populateSelect('pl-f-status', VALID.status);
+    populateSelect('pl-f-elephant', VALID.elephant);
+  }
+
+  /* ============================================================
+     Export to Excel (guarded — needs window.ExcelJS from the host page)
+     ============================================================ */
+  function exportToExcel() {
+    var btn = byId('pl-f-export');
+    if (typeof window.ExcelJS === 'undefined') {
+      alert('Export unavailable: the ExcelJS library is not loaded on this page. See README-MERGE.md.');
+      return;
+    }
+    var oldLabel = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = '\u23f3 Exporting...'; btn.disabled = true; }
+
+    var finish = function () { if (btn) { btn.textContent = oldLabel; btn.disabled = false; } };
+
+    try {
+      var filtered = getFilteredDeals();
+      var goLive = filtered.filter(function (d) { return d.stage === 'Go Live'; });
+      var verbal = filtered.filter(function (d) { return d.stage === 'Verbal'; });
+      var potential = filtered.filter(function (d) { return d.stage === 'Potential'; });
+
+      var wb = new window.ExcelJS.Workbook();
+      var ws = wb.addWorksheet('Dashboard', { views: [{ showGridLines: false }] });
+      ws.getColumn(1).width = 2;
+      [6, 22, 9, 14, 14, 9, 15, 14, 14, 14, 16, 11, 15, 16].forEach(function (w, i) { ws.getColumn(2 + i).width = w; });
+
+      var r = 1;
+      var set = function (row, col, v, opts) {
+        opts = opts || {};
+        var c = ws.getCell(row, col);
+        c.value = v;
+        if (opts.font) c.font = opts.font;
+        if (opts.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + opts.fill } };
+        if (opts.align) c.alignment = opts.align;
+        if (opts.numFmt) c.numFmt = opts.numFmt;
+        return c;
+      };
+      var mergeRow = function (row, c1, c2) { ws.mergeCells(row, c1 || 2, row, c2 || 15); };
+      var white = { argb: 'FFFFFFFF' };
+      var gray = { argb: 'FF5B6470' };
+      var statusColor = { 'Lived': 'FF548235', 'Onboarding': 'FF1F4E78', 'Verbally Agreement': 'FFBF8F00', 'Negotiation': 'FFC55A11' };
+
+      set(r, 2, 'VA Distribution Performance \u2014 2026', { font: { bold: true, size: 16 } }); mergeRow(r); r++;
+      set(r, 2, 'Brand pipeline & NMV tracking \u00b7 Go Live \u00b7 Verbal Agreement \u00b7 Potential deals',
+        { font: { italic: true, size: 10, color: gray } }); mergeRow(r); r += 2;
+
+      var nmvFC = filtered.reduce(function (s, d) { return s + d.vnd; }, 0);
+      var nmvFCUsd = filtered.reduce(function (s, d) { return s + d.usd; }, 0);
+      var nmvGL = goLive.reduce(function (s, d) { return s + d.vnd; }, 0);
+      var kpiCols = [2, 4, 6, 8, 10, 12];
+      var kpiHeads = ['Total NMV FC 2026', 'Total NMV FC 2026 (USD)', 'Total NMV Go Live YTD 2026', 'Total Brand Golive YTD 2026', 'Total Brand Verbal YTD 2026', 'Total Brand Potential'];
+      var kpiVals = [(nmvFC / 1e9).toFixed(2) + ' BIL', '$' + (nmvFCUsd / 1e6).toFixed(2) + 'M', (nmvGL / 1e9).toFixed(2) + ' BIL', goLive.length, verbal.length, potential.length];
+      kpiCols.forEach(function (c, i) {
+        set(r, c, kpiHeads[i], { font: { bold: true, size: 9, color: { argb: 'FF4D4400' } }, fill: 'FFFF00', align: { horizontal: 'center', vertical: 'middle', wrapText: true } });
+      });
+      r++;
+      kpiCols.forEach(function (c, i) { set(r, c, kpiVals[i], { font: { bold: true, size: 13 }, align: { horizontal: 'center' } }); });
+      r++;
+      set(r, 2,
+        'Breakdown of Total NMV FC 2026: ' + (nmvFC / 1e9).toFixed(2) + ' BIL VND ($' + (nmvFCUsd / 1e6).toFixed(2) + 'M) \u2014 ' +
+        'Go Live ' + (nmvGL / 1e9).toFixed(2) + ' BIL \u00b7 Verbal ' + (verbal.reduce(function (s, d) { return s + d.vnd; }, 0) / 1e9).toFixed(2) + ' BIL \u00b7 ' +
+        'Potential ' + (potential.reduce(function (s, d) { return s + d.vnd; }, 0) / 1e9).toFixed(2) + ' BIL' +
+        (filtered.length !== deals.length ? '  (based on current filter selection)' : ''),
+        { font: { italic: true, size: 9, color: gray } });
+      mergeRow(r); r += 2;
+
+      function writeSection(title, winRate, bg, rows, monthLbl, dateLbl, nmvLabel) {
+        set(r, 2, '\u2299 ' + title + '   ||   Win-rate: ' + winRate, { font: { bold: true, size: 11, color: white }, fill: bg, align: { vertical: 'middle', indent: 1 } });
+        mergeRow(r); r++;
+        var headers = ['No.', 'Brand', 'Tier', 'Model', 'CD', 'ELEPHANT', 'CAT', 'VA Name', 'Channel', 'Status', monthLbl, dateLbl, nmvLabel + ' (USD)', nmvLabel + ' (VND)'];
+        headers.forEach(function (h, i) { set(r, 2 + i, h, { font: { bold: true, size: 9, color: white }, fill: bg, align: { vertical: 'middle', wrapText: true, horizontal: 'left', indent: 1 } }); });
+        r++;
+        if (rows.length === 0) {
+          set(r, 2, 'No deals match the current filters', { font: { italic: true, size: 9, color: gray } });
+          mergeRow(r); r++;
+        } else {
+          rows.forEach(function (d) {
+            set(r, 2, d.no, { align: { vertical: 'middle' } });
+            set(r, 3, d.brand, { align: { vertical: 'middle' } });
+            set(r, 4, d.tier, { align: { vertical: 'middle' } });
+            set(r, 5, d.model, { align: { vertical: 'middle' } });
+            set(r, 6, d.cd, { align: { vertical: 'middle' } });
+            set(r, 7, d.elephant, { align: { vertical: 'middle' } });
+            set(r, 8, d.cat, { align: { vertical: 'middle' } });
+            set(r, 9, d.va, { align: { vertical: 'middle' } });
+            set(r, 10, d.channel, { align: { vertical: 'middle' } });
+            set(r, 11, d.status, { font: { bold: true, size: 9, color: { argb: statusColor[d.status] || 'FF1B1F23' } } });
+            set(r, 12, d.month, { align: { vertical: 'middle' } });
+            set(r, 13, d.date, { align: { vertical: 'middle' } });
+            set(r, 14, d.usd, { align: { vertical: 'middle', horizontal: 'right' }, numFmt: '$#,##0' });
+            set(r, 15, d.vnd, { align: { vertical: 'middle', horizontal: 'right' }, numFmt: '#,##0' });
+            ws.getRow(r).eachCell(function (c) { if (!c.font) c.font = { size: 9 }; });
+            r++;
+          });
+        }
+        r++;
+      }
+
+      writeSection('GO LIVE DEAL', '100%', '2E7D32', goLive, 'Lived Month', 'Lived Date (mm/dd/yyyy)', 'NMV 2026');
+      writeSection('VERBAL AGREEMENT & ONBOARDING DEAL', '>80%', '1F3864', verbal, 'Lived Month (BP)', 'Expected Lived Date (mm/dd/yyyy)', 'NMV 2026');
+      writeSection('POTENTIAL DEAL', '40\u201360%', 'E97132', potential, 'Lived Month (BP)', 'Expected Lived Date (mm/dd/yyyy)', 'NMV live\u2192EO26');
+
+      set(r, 2, 'Filters applied \u2014 Stage: ' + byId('pl-f-stage').value + ', Tier: ' + byId('pl-f-tier').value +
+        ', CD: ' + byId('pl-f-cd').value + ', CAT: ' + byId('pl-f-cat').value + ', VA Name: ' + byId('pl-f-va').value +
+        ', Channel: ' + byId('pl-f-channel').value + ', Status: ' + byId('pl-f-status').value + ', Elephant: ' + byId('pl-f-elephant').value +
+        ', Search: "' + byId('pl-f-search').value + '", Time view: ' + byId('pl-f-time-mode').value + ' ' +
+        (byId('pl-f-time-day').value || byId('pl-f-time-month').value || '') + '. Exported ' + new Date().toLocaleString('en-US') + '.',
+        { font: { italic: true, size: 8, color: { argb: 'FF9AA1A9' } } });
+      mergeRow(r); r++;
+
+      var rawSheet = wb.addWorksheet('Raw Data');
+      var rawHeaders = ['Stage', 'No.', 'Brand', 'Tier', 'Model', 'CD', 'ELEPHANT', 'CAT', 'VA Name', 'Channel', 'Status', 'Month', 'Date', 'NMV (USD)', 'NMV (VND)', 'brand_key'];
+      rawSheet.addRow(rawHeaders).eachCell(function (c) { c.font = { bold: true, color: white }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF37474F' } }; });
+      filtered.forEach(function (d) { rawSheet.addRow([d.stage, d.no, d.brand, d.tier, d.model, d.cd, d.elephant, d.cat, d.va, d.channel, d.status, d.month, d.date, d.usd, d.vnd, d.brand_key]); });
+      rawHeaders.forEach(function (h, i) { rawSheet.getColumn(i + 1).width = Math.max(10, h.length + 2); });
+
+      wb.xlsx.writeBuffer().then(function (buf) {
+        var blob = new Blob([buf], { type: 'application/octet-stream' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        var stamp = new Date().toISOString().slice(0, 10);
+        a.href = url; a.download = 'OnPoint_VA_Dashboard_Report_' + stamp + '.xlsx';
+        // Not appended to document.body (constraint forbids touching body outside rootEl) —
+        // click() on a detached <a> still triggers the download in evergreen browsers.
+        a.click();
+        URL.revokeObjectURL(url);
+        finish();
+      }).catch(function (err) {
+        console.error('Export failed:', err);
+        alert('Export failed: ' + err.message);
+        finish();
+      });
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Export failed: ' + err.message);
+      finish();
+    }
+  }
+
+  /* ============================================================
+     Filter wiring / apply
+     ============================================================ */
+  var FILTER_IDS = ['pl-f-stage', 'pl-f-tier', 'pl-f-cd', 'pl-f-cat', 'pl-f-va', 'pl-f-channel', 'pl-f-status', 'pl-f-elephant'];
+
+  function applyFilters() {
+    var filtered = getFilteredDeals();
+    updateTimeRangeNote();
+    renderTables(filtered);
+    updateKPIs(filtered);
+    updateChart1(filtered);
+    updateChart2(filtered);
+  }
+
+  function bindEvents() {
+    FILTER_IDS.forEach(function (id) {
+      var el = byId(id);
+      if (el) on(el, 'change', applyFilters);
+    });
+    var searchEl = byId('pl-f-search');
+    if (searchEl) on(searchEl, 'input', applyFilters);
+
+    var timeModeEl = byId('pl-f-time-mode');
+    if (timeModeEl) {
+      on(timeModeEl, 'change', function () {
+        var mode = byId('pl-f-time-mode').value;
+        byId('pl-f-time-day-wrap').style.display = (mode === 'day' || mode === 'week') ? '' : 'none';
+        byId('pl-f-time-month-wrap').style.display = (mode === 'month') ? '' : 'none';
+        applyFilters();
+      });
+    }
+    var timeDayEl = byId('pl-f-time-day');
+    if (timeDayEl) on(timeDayEl, 'change', applyFilters);
+    var timeMonthEl = byId('pl-f-time-month');
+    if (timeMonthEl) on(timeMonthEl, 'change', applyFilters);
+
+    var resetEl = byId('pl-f-reset');
+    if (resetEl) {
+      on(resetEl, 'click', function () {
+        FILTER_IDS.forEach(function (id) { var el = byId(id); if (el) el.value = 'all'; });
+        byId('pl-f-search').value = '';
+        byId('pl-f-time-mode').value = 'all';
+        byId('pl-f-time-day').value = '';
+        byId('pl-f-time-month').value = '';
+        byId('pl-f-time-day-wrap').style.display = 'none';
+        byId('pl-f-time-month-wrap').style.display = 'none';
+        applyFilters();
+      });
+    }
+
+    var exportEl = byId('pl-f-export');
+    if (exportEl) {
+      if (typeof window.ExcelJS === 'undefined') {
+        exportEl.disabled = true;
+        exportEl.title = 'Export unavailable: ExcelJS library not loaded on this page.';
+      }
+      on(exportEl, 'click', exportToExcel);
+    }
+  }
+
+  function renderValidationNote() {
+    var note = byId('pl-validation-note');
+    if (!note) return;
+    note.innerHTML =
+      'Filter options (Tier, CD, CAT, VA Name, Channel, Status, Elephant) come from the validation/data object ' +
+      'passed into <code>PipelineTracker.mount()</code> \u2014 every valid option is selectable even if no deal currently uses it. ' +
+      'See SCHEMA.md for the full enum lists and README-MERGE.md for the data contract.';
+  }
+
+  function renderFooterNote() {
+    var note = byId('pl-footer-note');
+    if (!note) return;
+    note.innerHTML =
+      'Chart 1 and Chart 2 are re-derived from the deals dataset (Confirmed/Pipeline NMV by month, and brand count by stage) ' +
+      'rather than from any separate pre-aggregated source \u2014 see SCHEMA.md for the exact formulas.';
+  }
+
+  /* ============================================================
+     Cleanup (used by both mount() — to be idempotent — and unmount())
+     ============================================================ */
+  function cleanup() {
+    boundListeners.forEach(function (rec) { rec.el.removeEventListener(rec.type, rec.handler); });
+    boundListeners = [];
+    if (resizeHandler) { window.removeEventListener('resize', resizeHandler); resizeHandler = null; }
+    if (chart1) { try { chart1.dispose(); } catch (e) {} chart1 = null; }
+    if (chart2) { try { chart2.dispose(); } catch (e) {} chart2 = null; }
+  }
+
+  /* ============================================================
+     Public API
+     ============================================================ */
+  function mount(el, data) {
+    if (!el) { console.error('PipelineTracker.mount: no element provided.'); return; }
+    cleanup(); // idempotent: safe even if mount() is called twice without unmount()
+
+    // `el` may be #pipeline-root itself, or a container that has #pipeline-root
+    // somewhere inside it (e.g. the host wrapped our body.html in its own div).
+    rootEl = (el.id === 'pipeline-root') ? el : (el.querySelector('#pipeline-root') || el);
+
+    data = data || {};
+    deals = normalizeDeals(data.deals);
+    VALID = data.validationLists || {};
+
+    populateAllSelects();
+    bindEvents();
+    initCharts();
+    renderValidationNote();
+    renderFooterNote();
+    applyFilters(); // initial render with default (all) filters
+    mounted = true;
+  }
+
+  function unmount() {
+    cleanup();
+    rootEl = null;
+    deals = [];
+    VALID = {};
+    mounted = false;
+  }
+
+  function setData(data) {
+    if (!mounted || !rootEl) { console.warn('PipelineTracker.setData called before mount().'); return; }
+    data = data || {};
+    deals = normalizeDeals(data.deals);
+    if (data.validationLists) VALID = data.validationLists;
+    populateAllSelects();
+    // Reset filter controls to "all" since option lists may have changed shape.
+    FILTER_IDS.forEach(function (id) { var elx = byId(id); if (elx) elx.value = 'all'; });
+    byId('pl-f-search').value = '';
+    applyFilters();
+  }
+
+  window.PipelineTracker = {
+    mount: mount,
+    unmount: unmount,
+    setData: setData,
+    // exposed for host apps that want to derive brand_key themselves (e.g. before join)
+    toBrandKey: toBrandKey
+  };
+})();
+
+</script>
+<script>
+  // ---- Bootstrap (test harness only - mirrors what the host app would do) ----
+  var STANDALONE_DATA = {
+  "_meta": {
+    "source_file": "Copy_of_validation.xlsx (Sheet3) + validation.xlsx",
+    "extracted": "2026-07-28",
+    "note": "Manually transcribed from the source workbook during the original dashboard build; there is no live parser wired to this JSON yet. See README-MERGE.md > Deviation."
+  },
+  "deals": [
+    {
+      "stage": "Go Live",
+      "no": 1,
+      "brand": "Hector",
+      "tier": "Tier 2",
+      "model": "Consignment",
+      "cd": "Thao Pham",
+      "elephant": "NO",
+      "cat": "Health",
+      "va": "Quyen Ngo",
+      "channel": "ECOM & TTS",
+      "status": "Lived",
+      "month": 1,
+      "date": "1/19/2026",
+      "dateISO": "2026-01-19",
+      "usd": 567148,
+      "vnd": 15114490073,
+      "brand_key": "hector"
+    },
+    {
+      "stage": "Go Live",
+      "no": 2,
+      "brand": "BeanStalk",
+      "tier": "Tier 2",
+      "model": "Outright",
+      "cd": "Ngoc Pham",
+      "elephant": "NO",
+      "cat": "Mom & Babies",
+      "va": "Anh Nguyen",
+      "channel": "SHP & TTS",
+      "status": "Lived",
+      "month": 2,
+      "date": "2/27/2026",
+      "dateISO": "2026-02-27",
+      "usd": 562852,
+      "vnd": 15000000000,
+      "brand_key": "beanstalk"
+    },
+    {
+      "stage": "Verbal",
+      "no": 1,
+      "brand": "LaVie",
+      "tier": "Tier 2",
+      "model": "Outright",
+      "cd": "Nhung Nguyen",
+      "elephant": "YES",
+      "cat": "F&B",
+      "va": "Hue Phan",
+      "channel": "TTS",
+      "status": "Onboarding",
+      "month": 6,
+      "date": "TBU",
+      "dateISO": null,
+      "usd": 304958,
+      "vnd": 8127138137,
+      "brand_key": "lavie"
+    },
+    {
+      "stage": "Verbal",
+      "no": 2,
+      "brand": "DETECH BIO",
+      "tier": "Tier 1",
+      "model": "Service",
+      "cd": "Duy Tran",
+      "elephant": "YES",
+      "cat": "Mom & Babies",
+      "va": "Minh Do",
+      "channel": "SHP & TTS",
+      "status": "Verbally Agreement",
+      "month": 6,
+      "date": "6/30/2026",
+      "dateISO": "2026-06-30",
+      "usd": 1067947,
+      "vnd": 28460793404,
+      "brand_key": "detechbio"
+    },
+    {
+      "stage": "Verbal",
+      "no": 3,
+      "brand": "Reckitt - OTC",
+      "tier": "Tier 3",
+      "model": "Outright",
+      "cd": "Thao Pham",
+      "elephant": "NO",
+      "cat": "Health",
+      "va": "Quyen Ngo",
+      "channel": "Ecom",
+      "status": "Verbally Agreement",
+      "month": 6,
+      "date": "6/1/2026",
+      "dateISO": "2026-06-01",
+      "usd": 150000,
+      "vnd": 3997500000,
+      "brand_key": "reckittotc"
+    },
+    {
+      "stage": "Potential",
+      "no": 1,
+      "brand": "FATZ BABY",
+      "tier": "Tier 0",
+      "model": "Outright",
+      "cd": "Duy Tran",
+      "elephant": "YES",
+      "cat": "Mom & Babies",
+      "va": "Minh Do",
+      "channel": "SHP & TTS",
+      "status": "Negotiation",
+      "month": 6,
+      "date": "6/15/2026",
+      "dateISO": "2026-06-15",
+      "usd": 2469966,
+      "vnd": 65824593900,
+      "brand_key": "fatzbaby"
+    },
+    {
+      "stage": "Potential",
+      "no": 2,
+      "brand": "Pierre Fabre",
+      "tier": "Tier 2",
+      "model": "Outright",
+      "cd": "Ngoc Pham",
+      "elephant": "NO",
+      "cat": "Beauty",
+      "va": "Anh Nguyen",
+      "channel": "ECOM & TTS",
+      "status": "Negotiation",
+      "month": 7,
+      "date": "7/15/2026",
+      "dateISO": "2026-07-15",
+      "usd": 1879677,
+      "vnd": 50093392050,
+      "brand_key": "pierrefabre"
+    },
+    {
+      "stage": "Potential",
+      "no": 3,
+      "brand": "LOREAL_LID project 1",
+      "tier": "Tier 1",
+      "model": "Consignment",
+      "cd": "Thao Pham",
+      "elephant": "YES",
+      "cat": "Beauty",
+      "va": "Anh Nguyen",
+      "channel": "Ecom & TTS",
+      "status": "Negotiation",
+      "month": 6,
+      "date": "TBU",
+      "dateISO": null,
+      "usd": 245961,
+      "vnd": 6554860650,
+      "brand_key": "loreallidproject1"
+    }
+  ],
+  "validationLists": {
+    "tier": [
+      "Tier 0",
+      "Tier 1",
+      "Tier 2"
+    ],
+    "model": [
+      "Consignment",
+      "Outright",
+      "Service"
+    ],
+    "cd": [
+      "Duy Tran",
+      "Thao Vu",
+      "Ngoc Pham",
+      "Nhung Nguyen",
+      "Thao Pham"
+    ],
+    "elephant": [
+      "YES",
+      "NO"
+    ],
+    "cat": [
+      "BEAUTY",
+      "EL",
+      "F&B",
+      "FASHION",
+      "FMCG",
+      "MOM & BABIES",
+      "HEALTH"
+    ],
+    "vaName": [
+      "Anh Nguyen",
+      "Quyen Ngo",
+      "Hue Phan",
+      "Thai Dinh",
+      "Tu Nguyen",
+      "Minh Do",
+      "Trang Nguyen",
+      "Under Commercial",
+      "Business Expansion"
+    ],
+    "channel": [
+      "ECOM & TTS",
+      "SHP",
+      "TTS",
+      "ECOM",
+      "D2C"
+    ],
+    "pendingParty": [
+      "Brand",
+      "LS Team",
+      "AFF/INF Team",
+      "Media Team",
+      "Short Video Team",
+      "VA Service",
+      "VA Distribution",
+      "Legal Team",
+      "Fin/ Ops Team",
+      "High level"
+    ],
+    "country": [
+      "Korea",
+      "China",
+      "Thailand",
+      "Others"
+    ],
+    "leadSource": [
+      "Top100",
+      "HL - Fanpage",
+      "HL - Inquiry (brand send mail)",
+      "HL - Referral new client only",
+      "HL - Hotline"
+    ],
+    "leadStage": [
+      "1. Not Started",
+      "2. First Contact (Email/ Call)",
+      "3. First Meeting",
+      "4. Processing Quotation/ Proposal",
+      "5. Sent Quotation/ Proposal",
+      "6. Negotiation",
+      "7. Verbally Agreement",
+      "8. Contract Signed",
+      "9. Onboarding",
+      "10. Lived"
+    ],
+    "status": [
+      "1st Meeting/ Contact",
+      "Brand Briefing",
+      "Processing Quotation/ Proposal",
+      "Sent Quotation/ Proposal",
+      "Negotiation",
+      "Verbally Agreement",
+      "Onboarding",
+      "Lived",
+      "Delay",
+      "Rejected"
+    ],
+    "contractStatus": [
+      "Drafting Docs",
+      "Pending review by OP",
+      "Pending review by Brand",
+      "In signing process by OP",
+      "In signing process by Brand",
+      "Contract signed",
+      "Cancel/ Delay"
+    ]
+  }
+};
+  (function boot() {
+    var container = document.getElementById('app-mount-point');
+    if (window.PipelineTracker) {
+      window.PipelineTracker.mount(container, STANDALONE_DATA);
+    } else {
+      console.error('PipelineTracker global not found - pipeline.js failed to load/parse.');
+    }
+  })();
+</script>
+</body>
+</html>

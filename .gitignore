@@ -18,3 +18,5 @@ npm-debug.log*
 .idea/
 .tmp/
 .claude/
+
+# smoke test can jsdom, cai bang: npm i --no-save jsdom

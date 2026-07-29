@@ -9,9 +9,12 @@
     "start": "next start",
     "lint": "next lint",
     "port": "node scripts/port-engine.mjs",
+    "port:pipeline": "node scripts/port-pipeline.mjs",
     "seed": "node scripts/generate-seed.mjs",
+    "seed:pipeline": "node scripts/generate-pipeline-seed.mjs",
+    "smoke:pipeline-data": "node scripts/smoke-pipeline-data.mjs",
     "verify": "python scripts/parse-seed.py && node scripts/verify-roundtrip.mjs",
-    "prebuild": "node scripts/port-engine.mjs"
+    "prebuild": "node scripts/port-engine.mjs && node scripts/port-pipeline.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

@@ -15,6 +15,8 @@ Khác biệt lớn nhất so với file HTML cũ: **data nằm trong database ch
 5. [Xử lý sự cố](#5-xử-lý-sự-cố)
 6. [Việc còn tồn đọng](#6-việc-còn-tồn-đọng)
 
+> **Tab Pipeline (`/pipeline`)** là module riêng do team khác build, merge vào ngày 2026-07-29. Nó **không dùng chung gì** với engine BrandHunt. Tài liệu riêng: **[PIPELINE_TAB.md](./PIPELINE_TAB.md)**. Sửa ở `scripts/_source/pipeline/` rồi `npm run port:pipeline`.
+
 ---
 
 ## 1. Kiến trúc

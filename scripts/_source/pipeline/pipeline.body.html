@@ -1,0 +1,129 @@
+<!--
+  pipeline.body.html
+  Pure markup only — no html/head/body wrapper tags, no script or style tags
+  inside this file. This whole block is meant to be injected via
+  dangerouslySetInnerHTML into a container element. After it is in the DOM,
+  the host app must call:
+    window.PipelineTracker.mount(containerEl, data)
+  where containerEl is the element that now contains (or equals) #pipeline-root.
+  See README-MERGE.md for the full embedding contract.
+-->
+<div id="pipeline-root">
+<div class="pl-wrap">
+
+  <div class="pl-dash-header">
+    <div>
+      <h1 class="pl-title">VA Distribution Performance — 2026</h1>
+      <div class="pl-subtitle">Brand pipeline &amp; NMV tracking · Go Live · Verbal Agreement · Potential deals</div>
+    </div>
+    <div class="pl-filters">
+      <div><label class="pl-label">Stage</label>
+        <select id="pl-f-stage" class="pl-select">
+          <option value="all">All stages</option>
+          <option value="Go Live">Go Live</option>
+          <option value="Verbal">Verbal / Onboarding</option>
+          <option value="Potential">Potential</option>
+        </select>
+      </div>
+      <div><label class="pl-label">Tier</label><select id="pl-f-tier" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">CD</label><select id="pl-f-cd" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">CAT</label><select id="pl-f-cat" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">VA Name</label><select id="pl-f-va" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">Channel</label><select id="pl-f-channel" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">Status</label><select id="pl-f-status" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">Elephant</label><select id="pl-f-elephant" class="pl-select"><option value="all">All</option></select></div>
+      <div><label class="pl-label">Search</label>
+        <input id="pl-f-search" class="pl-input" type="text" placeholder="Brand, CD, VA..."/>
+      </div>
+      <div class="pl-filters-divider"></div>
+      <div><label class="pl-label">Time view</label>
+        <select id="pl-f-time-mode" class="pl-select">
+          <option value="all">All time</option>
+          <option value="day">By Day</option>
+          <option value="week">By Week</option>
+          <option value="month">By Month</option>
+        </select>
+      </div>
+      <div id="pl-f-time-day-wrap" class="pl-time-wrap" style="display:none"><label class="pl-label">Pick day</label>
+        <input id="pl-f-time-day" class="pl-input" type="date" min="2026-01-01" max="2026-12-31"/>
+      </div>
+      <div id="pl-f-time-month-wrap" class="pl-time-wrap" style="display:none"><label class="pl-label">Pick month</label>
+        <input id="pl-f-time-month" class="pl-input" type="month" min="2026-01" max="2026-12"/>
+      </div>
+      <button id="pl-f-reset" class="pl-btn">Reset</button>
+      <button id="pl-f-export" class="pl-btn pl-btn-export">⬇ Export Excel</button>
+    </div>
+  </div>
+  <div class="pl-footer-note" id="pl-time-range-note"></div>
+  <div class="pl-footer-note" id="pl-validation-note"></div>
+
+  <!-- KPI CARDS -->
+  <!--
+    KPI cards chay 2 che do (xem README-MERGE > "KPI hybrid"):
+      - Khong filter  -> hien so OFFICIAL lay tu data._meta.officialKpi (khop header workbook)
+      - Co filter     -> hien so tinh tu cac dong dang loc
+    Badge #pl-kpi-mode cho biet dang o che do nao. Dung sua so trong file nay
+    hay trong pipeline.js — sua o scripts/_source/pipeline/data/pipeline.json.
+  -->
+  <div class="pl-kpi-row">
+    <div class="pl-kpi-mode-bar">
+      <span class="pl-kpi-mode" id="pl-kpi-mode">-</span>
+    </div>
+    <div class="pl-kpi-card pl-kpi-charcoal"><div class="pl-kpi-head">Total NMV FC 2026</div><div class="pl-kpi-value" id="pl-kpi-nmv-fc">-</div></div>
+    <div class="pl-kpi-card pl-kpi-teal"><div class="pl-kpi-head">Total NMV FC 2026 (USD)</div><div class="pl-kpi-value" id="pl-kpi-nmv-fc-usd">-</div></div>
+    <div class="pl-kpi-card pl-kpi-green"><div class="pl-kpi-head">Total NMV Go Live YTD 2026</div><div class="pl-kpi-value" id="pl-kpi-nmv-golive">-</div></div>
+    <div class="pl-kpi-card pl-kpi-green"><div class="pl-kpi-head">Total Brand Golive YTD 2026</div><div class="pl-kpi-value" id="pl-kpi-golive">-</div></div>
+    <div class="pl-kpi-card pl-kpi-navy"><div class="pl-kpi-head">Total Brand Verbal YTD 2026</div><div class="pl-kpi-value" id="pl-kpi-verbal">-</div></div>
+    <div class="pl-kpi-card pl-kpi-orange"><div class="pl-kpi-head">Total Brand Potential</div><div class="pl-kpi-value" id="pl-kpi-potential">-</div></div>
+    <div class="pl-kpi-note" id="pl-kpi-breakdown-note"></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="pl-chart-row">
+    <div class="pl-chart-card"><div id="pl-chart1" class="pl-echart"></div></div>
+    <div class="pl-chart-card"><div id="pl-chart2" class="pl-echart"></div></div>
+  </div>
+
+  <!-- GO LIVE TABLE -->
+  <div class="pl-section pl-go-live">
+    <div class="pl-section-head"><span>⊙ GO LIVE DEAL</span><span class="pl-count-pill">Win-rate: 100%</span></div>
+    <table id="pl-tbl-go-live" class="pl-table">
+      <thead><tr>
+        <th class="pl-th">No.</th><th class="pl-th">Brand</th><th class="pl-th">Tier</th><th class="pl-th">Model</th><th class="pl-th">CD</th><th class="pl-th">ELEPHANT</th><th class="pl-th">CAT</th>
+        <th class="pl-th">VA Name</th><th class="pl-th">Channel</th><th class="pl-th">Status</th><th class="pl-th">Lived&#10;Month</th><th class="pl-th">Lived Date&#10;(mm/dd/yyyy)</th>
+        <th class="pl-th">NMV 2026&#10;(USD)</th><th class="pl-th">NMV 2026&#10;(VND)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- VERBAL TABLE -->
+  <div class="pl-section pl-verbal">
+    <div class="pl-section-head"><span>⊙ VERBAL AGREEMENT &amp; ONBOARDING DEAL</span><span class="pl-count-pill">Win-rate &gt;80%</span></div>
+    <table id="pl-tbl-verbal" class="pl-table">
+      <thead><tr>
+        <th class="pl-th">No.</th><th class="pl-th">Brand</th><th class="pl-th">Tier</th><th class="pl-th">Model</th><th class="pl-th">CD</th><th class="pl-th">ELEPHANT</th><th class="pl-th">CAT</th>
+        <th class="pl-th">VA Name</th><th class="pl-th">Channel</th><th class="pl-th">Status</th><th class="pl-th">Lived Month&#10;(based on BP)</th><th class="pl-th">Expected Lived Date&#10;(mm/dd/yyyy)</th>
+        <th class="pl-th">NMV 2026&#10;(USD)</th><th class="pl-th">NMV 2026&#10;(VND)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- POTENTIAL TABLE -->
+  <div class="pl-section pl-potential">
+    <div class="pl-section-head"><span>⊙ POTENTIAL DEAL</span><span class="pl-count-pill">Win-rate: 40 – 60%</span></div>
+    <table id="pl-tbl-potential" class="pl-table">
+      <thead><tr>
+        <th class="pl-th">No.</th><th class="pl-th">Brand</th><th class="pl-th">Tier</th><th class="pl-th">Model</th><th class="pl-th">CD</th><th class="pl-th">ELEPHANT</th><th class="pl-th">CAT</th>
+        <th class="pl-th">VA Name</th><th class="pl-th">Channel</th><th class="pl-th">Status</th><th class="pl-th">Lived Month&#10;(based on BP)</th><th class="pl-th">Expected Lived Date&#10;(mm/dd/yyyy)</th>
+        <th class="pl-th">NMV live &#8594; EO 26&#10;(USD)</th><th class="pl-th">NMV live &#8594; EO 26&#10;(VND)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="pl-footer-note" id="pl-footer-note"></div>
+
+</div>
+</div>
