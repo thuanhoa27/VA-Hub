@@ -7,7 +7,6 @@ import { isConfigured } from '@/lib/supabase/client';
 import { ensureXLSX } from '@/lib/vendor';
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || 'dev';
-const RUN_BY_KEY = 'bh_run_by';
 
 /**
  * Host cua engine phan tich.
@@ -34,30 +33,10 @@ export default function BrandHuntApp() {
 
   const [status, setStatus] = useState('loading'); // loading | ready | error
   const [errMsg, setErrMsg] = useState('');
-  const [runBy, setRunBy] = useState('');
   const [savedCount, setSavedCount] = useState(0);
   const [saveErr, setSaveErr] = useState('');
 
   const shellHtml = useMemo(() => ({ __html: SHELL_BODY }), []);
-
-  // ten VA duoc nho lai o may — app public nen khong co login de lay tu dau
-  useEffect(() => {
-    try {
-      setRunBy(window.localStorage.getItem(RUN_BY_KEY) || '');
-    } catch (e) {
-      /* trinh duyet chan storage — bo qua, chi mat tinh nang nho ten */
-    }
-  }, []);
-
-  const runByRef = useRef('');
-  useEffect(() => {
-    runByRef.current = runBy;
-    try {
-      window.localStorage.setItem(RUN_BY_KEY, runBy);
-    } catch (e) {
-      /* bo qua */
-    }
-  }, [runBy]);
 
   useEffect(() => {
     if (bootedRef.current) return;
@@ -94,7 +73,7 @@ export default function BrandHuntApp() {
       engine.setOnRun(async () => {
         try {
           const row = engine.snapshotRun({
-            runBy: runByRef.current || null,
+            runBy: null,
             appVersion: APP_VERSION,
           });
           const { error: e } = await saveRun(row);
@@ -124,27 +103,14 @@ export default function BrandHuntApp() {
 
   return (
     <>
-      {/* thanh phu: ai dang chay + trang thai ghi DB */}
+      {/* thanh phu: trang thai ghi DB */}
       <div className="border-b border-op-line bg-white px-7 py-2">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-3">
-          <label className="text-[12.5px] font-semibold text-op-ink">Run by</label>
-          <input
-            value={runBy}
-            onChange={(e) => setRunBy(e.target.value)}
-            placeholder="ten hoac email cua ban"
-            className="w-56 rounded-md border border-op-line px-2.5 py-1.5 text-[13px] text-op-ink outline-none focus:border-op-blue"
-          />
-          <span className="text-[12px] text-op-ink2">
-            App chay public — ten nay chi de truy vet ai da chay phan tich nao.
-          </span>
-
-          <span className="ml-auto flex items-center gap-3 text-[12px]">
-            {status === 'loading' && <Badge tone="neutral">Dang nap data…</Badge>}
-            {status === 'ready' && <Badge tone="ok">Data: Supabase</Badge>}
-            {status === 'error' && <Badge tone="bad">Loi data</Badge>}
-            {savedCount > 0 && <Badge tone="ok">Da luu {savedCount} lan chay</Badge>}
-            {saveErr && <Badge tone="bad">Khong luu duoc: {saveErr}</Badge>}
-          </span>
+        <div className="mx-auto flex max-w-[1180px] items-center justify-end gap-3 text-[12px]">
+          {status === 'loading' && <Badge tone="neutral">Dang nap data…</Badge>}
+          {status === 'ready' && <Badge tone="ok">Data: Supabase</Badge>}
+          {status === 'error' && <Badge tone="bad">Loi data</Badge>}
+          {savedCount > 0 && <Badge tone="ok">Da luu {savedCount} lan chay</Badge>}
+          {saveErr && <Badge tone="bad">Khong luu duoc: {saveErr}</Badge>}
         </div>
       </div>
 
